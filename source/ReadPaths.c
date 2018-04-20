@@ -20,15 +20,17 @@ char** ReadPaths(char* docfilename, int* numPathsptr){
   //read line by line
   char *line = NULL;
   size_t len=1;
-  ssize_t t=0;
+  ssize_t temp=0;
 
 
-  while( (t = getline(&line, &len, fp)) != -1){
+  while( (temp = getline(&line, &len, fp)) != -1){
+    printf("Read line of size %zu:%s", temp,line);
     //resize the Paths array
     paths_size++;
     Paths = realloc(Paths,sizeof(char*)*paths_size);
     NULL_Check(Paths);
     //store the path at the end
+    RemoveNewline(&line,temp);
     Paths[paths_size-1] = line;
     line = NULL;
   }
@@ -38,4 +40,21 @@ char** ReadPaths(char* docfilename, int* numPathsptr){
 
   *numPathsptr = paths_size;
   return Paths;
+}
+
+void FreePaths(char** Paths,int size){
+  //free contents
+  for(int i=0; i<size; i++){
+    free(Paths[i]);
+    Paths[i] = NULL;
+  }
+  //free the array
+  free(Paths);
+}
+
+void RemoveNewline(char** lineptr,ssize_t size){
+  //resize to cut the old \0
+  *lineptr = realloc(*lineptr,sizeof(char)*size);
+  //establish new \0 where \n used to be
+  (*lineptr)[size-1] = '\0';
 }
