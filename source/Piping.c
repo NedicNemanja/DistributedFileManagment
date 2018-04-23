@@ -48,7 +48,7 @@ char* PipeName(const char* str, int i){
 int NumDigits(int i){
   if(i==0)
     return 1;
-  /*we do i+1 because in the case of i=10 log10(10)=1 and we need 2*/
+  /*do i+1 because in the case of i=10 log10(10)=1 and we need 2*/
   return (int)ceil(log10(i+1));
 }
 

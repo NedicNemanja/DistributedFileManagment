@@ -38,6 +38,9 @@ and then the actual message.
 Messages with size > MAX_MSG_SIZE are broken up into a sequence of messsages
 (Read PipeHead)
 At the end send SIGUSR1 signal to the receiver so he knows he is getting a msg.
+CAUTION:when a pipe is full the write(2) will block
+        until sufficient data is read from the named pipe,
+        thats why O_NONBLOCK must be disabled.
 */
 void Send(pid_t receiver, int fd, char* msg);
 

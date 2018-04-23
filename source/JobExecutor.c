@@ -63,6 +63,10 @@ int main(int argc, char* argv[]){
   //Distribute the paths to the workers
   DistributePaths(Children,Paths,numPaths,OpenToPipes);
 
+  int status;
+  while(wait(&status) > 0);
+
   FreePaths(Paths,numPaths);
+
   return 0;
 }

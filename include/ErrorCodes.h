@@ -11,7 +11,8 @@ typedef enum ERRORCODE { OK=0,
                   UNKNOWN_CMDARGUMENT,
                   UNSPECIFIED_i,
                   w_LESS_THAN_ONE,
-                  CANT_OPEN_DIR
+                  CANT_OPEN_DIR,
+                  CANT_CLOSE_DIR
 } ERRORCODE;
 
 //this informs about the error that terminated the prog abruptly

@@ -32,7 +32,6 @@ int Worker(int wrk_num){
   char** Files = GetDirFiles(Dirs,numDirs,&numFiles);
 
 
-
   free(msg);
   return 0;
 }
@@ -53,16 +52,18 @@ void OpenChildPipes(int* to_pipe, int* from_pipe, int wrk_num){
 }
 
 char** DivideDirs(char* msg,int* numDirs){
-  *numDirs = 0;
-  int msg_size = strlen(msg);
-  char* token;
   char** Dirs = NULL;
+  *numDirs = 0;
+  int offset=0;
   //break up the string into tokens and store each token in Dirs
-  while((token = strtok(msg,"\n")) != NULL){
+  char* token = strtok(msg,"\n");
+  while(token != NULL){
     (*numDirs)++;
     Dirs = realloc(Dirs,sizeof(char*)*(*numDirs));
     NULL_Check(Dirs);
     Dirs[(*numDirs)-1] = token;
+    token =  strtok(NULL,"\n");
+    printf("%s\n", Dirs[(*numDirs)-1]);
   }
 
   return Dirs;
@@ -82,13 +83,22 @@ char** GetDirFiles(char** Dirs, int numDirs, int* numFiles){
     //read files
     struct dirent* file;
     while( (file = readdir(dir)) != NULL){
+      //ignore current(.) and parent(..) dirs
+      if((strcmp(file->d_name,".")==0) || (strcmp(file->d_name,"..")==0))
+        continue;
+      //resize Files array
       (*numFiles)++;
       Files = realloc(Files,sizeof(char*)*(*numFiles));
       NULL_Check(Files);
-      //copy the filename
-      Files[(*numFiles)-1] = malloc(sizeof(char)*strlen(file->d_name));
+      //copy the filename to the array
+      Files[(*numFiles)-1] = malloc(sizeof(char)*strlen(file->d_name) +1);
       NULL_Check(Files[(*numFiles)-1]);
       strcpy(Files[(*numFiles)-1],file->d_name);
+    }
+    //close directory
+    if(closedir(dir) != 0){
+      perror("Failed to close dir\n");
+      exit(CANT_CLOSE_DIR);
     }
   }
 
