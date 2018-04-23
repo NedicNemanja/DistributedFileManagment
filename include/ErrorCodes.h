@@ -10,7 +10,8 @@ typedef enum ERRORCODE { OK=0,
                   ALLOCATION_FAIL,
                   UNKNOWN_CMDARGUMENT,
                   UNSPECIFIED_i,
-                  w_LESS_THAN_ONE
+                  w_LESS_THAN_ONE,
+                  CANT_OPEN_DIR
 } ERRORCODE;
 
 //this informs about the error that terminated the prog abruptly

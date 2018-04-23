@@ -1,32 +1,17 @@
 #include <stdio.h>
-#include "Arguments.h"
-#include "ReadPaths.h"
-#include "Piping.h"
-#include "ErrorCodes.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/wait.h>
-
-int MakePipePair(int i);
+#include "Arguments.h"
+#include "ReadPaths.h"
+#include "Piping.h"
+#include "ErrorCodes.h"
+#include "Worker.h"
 
 int main(int argc, char* argv[]){
   ReadArguments(argc,argv);
-
-  int numPaths;
-  char** Paths = ReadPaths(docfilename,&numPaths);
-  for(int i=0; i<numPaths; i++){
-    printf("%s", Paths[i]);
-    FILE* f = fopen(Paths[i],"r");
-    if(f != NULL){
-      char c = fgetc(f);
-      printf("read:%c\n", c);
-      fclose(f);
-    }
-    else
-      perror("cant open");
-  }
 
   //start workers
   pid_t Children[numWorkers];
@@ -46,26 +31,9 @@ int main(int argc, char* argv[]){
     }
     if(Children[i] == 0){ //this is the child
       printf("Child%d reporting %d.\n", i, getpid());
-      //open pipes from child side
-      int to_pipe,from_pipe;
-      char* to_pipename = PipeName("to",i);
-      char* from_pipename = PipeName("from",i);
-      if((to_pipe = open(to_pipename, O_RDONLY)) < 0){
-        perror("fifo open\n");
-        exit(1);
-      }
-      if((from_pipe = open(from_pipename, O_WRONLY)) < 0){
-        perror("fifo open\n");
-        exit(1);
-      }
-      free(to_pipename);
-      free(from_pipename);
-      FreePaths(Paths,numPaths);
-      printf("-------------%d---------\n", getpid());
-      return 0;
+      return Worker(i);
     }
   }
-  sleep(10);
 
   //This is the Parent
   //open pipes from parent side
@@ -85,7 +53,16 @@ int main(int argc, char* argv[]){
     free(to_pipename);
     free(from_pipename);
   }
-sleep(20);
+
+  //Read the directories paths
+  int numPaths;
+  char** Paths = ReadPaths(docfilename,&numPaths);
+  for(int i=0; i<numPaths; i++){
+    printf("%s", Paths[i]);
+  }
+  //Distribute the paths to the workers
+  DistributePaths(Children,Paths,numPaths,OpenToPipes);
+
   FreePaths(Paths,numPaths);
   return 0;
 }
