@@ -7,11 +7,11 @@ CC = gcc
 CFLAGS=-g -I$(INCLUDE_DIR) -lm
 OUT = jobExecutor
 
-_DEPS = Arguments.h ErrorCodes.h Piping.h ReadPaths.h Worker.h
+_DEPS = Arguments.h AVL_tree.h Console.h DocumentMap.h ErrorCodes.h List.h LoadFile.h Piping.h Post.h PostingList.h ReadPaths.h ReallocDocument.h StringManipulation.h Trie.h Word.h Worker.h
 #pattern matching from  _DEPS to include directory
 DEPS = $(patsubst %,$(INCLUDE_DIR)/%,$(_DEPS))
 
-_OBJ = Arguments.o JobExecutor.o Piping.o ReadPaths.o Worker.o
+_OBJ = Arguments.o AVL_tree.o Console.o DocumentMap.o List.o LoadFile.o Piping.o Post.o PostingList.o ReadPaths.o ReallocDocument.o StringManipulation.o Trie.o Word.o Worker.o JobExecutor.o
 #same pattern matching principe
 OBJ = $(patsubst %,$(OBJECT_DIR)/%,$(_OBJ))
 

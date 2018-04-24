@@ -21,6 +21,8 @@ available for reading from the pipe. At the start of every porcess this
 flag is set to 0.*/
 int READ_FLAG;
 
+void msg_signal();
+
 /*Make 2 named pipes, one for the worker to read and one to write*/
 int MakePipePair(int i);
 
@@ -29,8 +31,9 @@ example: PipeName("to",1) returns "./PipeDirectory/to1"
 CAUTION: user must free the pipename you got after this call.*/
 char* PipeName(const char* str, int i);
 
-/*number of digits in an int in base 10*/
-int NumDigits(int i);
+void OpenExecutorPipes(int* OpenToPipes, int* OpenFromPipes);
+
+void OpenWorkerPipes(int* to_pipe,int* from_pipe,int wrk_num);
 
 /*Send a msg to a file descriptor using write.
 First send a  message header that contains info about the size of the message
@@ -45,5 +48,11 @@ CAUTION:when a pipe is full the write(2) will block
 void Send(pid_t receiver, int fd, char* msg);
 
 char* Receive(int fd);
+
+//Send the same message to all Children in said array
+void SendToAll(pid_t* Children,int* OpenToPipes,char* msg);
+
+/*number of digits in an int in base 10*/
+int NumDigits(int i);
 
 #endif

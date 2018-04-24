@@ -5,9 +5,16 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
 #include "ErrorCodes.h"
+#include "Arguments.h"
+
+void msg_signal(){
+  signal(SIGUSR1, msg_signal);
+  READ_FLAG += 2; //header+msg=2messages
+}
 
 int MakePipePair(int i){
   char* pipename_to = PipeName("to",i);
@@ -45,16 +52,41 @@ char* PipeName(const char* str, int i){
   return pipename;
 }
 
-int NumDigits(int i){
-  if(i==0)
-    return 1;
-  /*do i+1 because in the case of i=10 log10(10)=1 and we need 2*/
-  return (int)ceil(log10(i+1));
+void OpenExecutorPipes(int* OpenToPipes, int* OpenFromPipes){
+  for(int i=0; i<numWorkers; i++){
+    char* to_pipename = PipeName("to",i);
+    char* from_pipename = PipeName("from",i);
+    if((OpenToPipes[i] = open(to_pipename, O_WRONLY)) < 0){
+      perror("fifo open\n");
+      exit(1);
+    }
+    if((OpenFromPipes[i] = open(from_pipename, O_RDONLY)) < 0){
+      perror("fifo open\n");
+      exit(1);
+    }
+    free(to_pipename);
+    free(from_pipename);
+  }
+}
+
+void OpenWorkerPipes(int* to_pipe, int* from_pipe, int wrk_num){
+  char* to_pipename = PipeName("to",wrk_num);
+  char* from_pipename = PipeName("from",wrk_num);
+  if(((*to_pipe) = open(to_pipename, O_RDONLY)) < 0){
+    perror("fifo open\n");
+    exit(1);
+  }
+  if(((*from_pipe) = open(from_pipename, O_WRONLY)) < 0){
+    perror("fifo open\n");
+    exit(1);
+  }
+  free(to_pipename);
+  free(from_pipename);
 }
 
 void Send(pid_t receiver, int fd, char* msg){
   unsigned int msg_size = strlen(msg);
-printf("Sending msg %zu:%s\n", strlen(msg),msg);
+printf("Sending msg %zu:<<%s>>\n", strlen(msg),msg);
   //when breaking up the msg its important to know what's to be sent next
   unsigned int msg_offset = 0;
 
@@ -133,8 +165,21 @@ char* Receive(int fd){
       msg = malloc(sizeof(char)*header+1);
       read(fd,msg,header+1);
       READ_FLAG -= 2;
-      printf("Received msg %zu:%s\n", strlen(msg),msg);
+      printf("Received msg %zu:<<%s>>\n", strlen(msg),msg);
     }
   }
   return msg;
+}
+
+void SendToAll(pid_t* Children,int* OpenToPipes,char* msg){
+  for(int i=0; i<numWorkers; i++){
+    Send(Children[i],OpenToPipes[i],msg);
+  }
+}
+
+int NumDigits(int i){
+  if(i==0)
+  return 1;
+  /*do i+1 because in the case of i=10 log10(10)=1 and we need 2*/
+  return (int)ceil(log10(i+1));
 }

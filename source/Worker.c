@@ -10,45 +10,38 @@
 #include "Piping.h"
 #include "Worker.h"
 #include "ErrorCodes.h"
-
-void msg_signal(){
-  signal(SIGUSR1, msg_signal);
-  READ_FLAG += 2; //header+msg=2messages
-}
+#include "LoadFile.h"
+#include "DocumentMap.h"
 
 int Worker(int wrk_num){
   //open pipes from child side
   int to_pipe,from_pipe;
-  OpenChildPipes(&to_pipe,&from_pipe,wrk_num);
+  OpenWorkerPipes(&to_pipe,&from_pipe,wrk_num);
   //pipes ready
   //read dirs when you receive SIGUSR1,its the 1st sequence of msg you get
   signal(SIGUSR1, msg_signal);
   pause();  //wait for a message
   char* msg = Receive(to_pipe);
-  printf("Child%d got: %s", wrk_num,msg);
-
+  //parse directories and get their files
   int numDirs,numFiles;
   char** Dirs = DivideDirs(msg,&numDirs);
-  char** Files = GetDirFiles(Dirs,numDirs,&numFiles);
+  char** FilePaths = GetDirFiles(Dirs,numDirs,&numFiles);
+  FreeDirs(Dirs);
+  //load files to memory and return their maps
+  DocumentMAP** DocMaps = LoadFiles(FilePaths,numFiles);
+
+  for(int i=0; i<numFiles; i++){
+    printf("***************************************************\n");
+    printf("DocumentMAP of: %s\n", FilePaths[i]);
+    if(DocMaps[i] == NULL) continue;
+    PrintMAP(*(DocMaps[i]));
+  }
 
 
+  FreeFilePaths(FilePaths,numFiles);
+  FreeDocMaps(DocMaps,numFiles);
   free(msg);
   return 0;
-}
-
-void OpenChildPipes(int* to_pipe, int* from_pipe, int wrk_num){
-  char* to_pipename = PipeName("to",wrk_num);
-  char* from_pipename = PipeName("from",wrk_num);
-  if(((*to_pipe) = open(to_pipename, O_RDONLY)) < 0){
-    perror("fifo open\n");
-    exit(1);
-  }
-  if(((*from_pipe) = open(from_pipename, O_WRONLY)) < 0){
-    perror("fifo open\n");
-    exit(1);
-  }
-  free(to_pipename);
-  free(from_pipename);
 }
 
 char** DivideDirs(char* msg,int* numDirs){
@@ -63,10 +56,13 @@ char** DivideDirs(char* msg,int* numDirs){
     NULL_Check(Dirs);
     Dirs[(*numDirs)-1] = token;
     token =  strtok(NULL,"\n");
-    printf("%s\n", Dirs[(*numDirs)-1]);
   }
 
   return Dirs;
+}
+
+void FreeDirs(char** Dirs){
+  free(Dirs);
 }
 
 char** GetDirFiles(char** Dirs, int numDirs, int* numFiles){
@@ -80,7 +76,7 @@ char** GetDirFiles(char** Dirs, int numDirs, int* numFiles){
       perror("Cant open dir\n");
       exit(CANT_OPEN_DIR);
     }
-    //read files
+    //read files  from directory
     struct dirent* file;
     while( (file = readdir(dir)) != NULL){
       //ignore current(.) and parent(..) dirs
@@ -91,9 +87,12 @@ char** GetDirFiles(char** Dirs, int numDirs, int* numFiles){
       Files = realloc(Files,sizeof(char*)*(*numFiles));
       NULL_Check(Files);
       //copy the filename to the array
-      Files[(*numFiles)-1] = malloc(sizeof(char)*strlen(file->d_name) +1);
+      Files[(*numFiles)-1] = malloc(sizeof(char)*(strlen(Dirs[i])+1+
+                                                  strlen(file->d_name)+1));
       NULL_Check(Files[(*numFiles)-1]);
-      strcpy(Files[(*numFiles)-1],file->d_name);
+      strcpy(Files[(*numFiles)-1],Dirs[i]);
+      strcat(Files[(*numFiles)-1],"/");
+      strcat(Files[(*numFiles)-1],file->d_name);
     }
     //close directory
     if(closedir(dir) != 0){
@@ -103,4 +102,12 @@ char** GetDirFiles(char** Dirs, int numDirs, int* numFiles){
   }
 
   return Files;
+}
+
+void FreeFilePaths(char** FilePaths, int numFiles){
+  for(int i=0; i<numFiles; i++){
+    free(FilePaths[i]);
+    FilePaths[i] = NULL;
+  }
+  free(FilePaths);
 }

@@ -9,6 +9,7 @@
 #include "Piping.h"
 #include "ErrorCodes.h"
 #include "Worker.h"
+#include "Console.h"
 
 int main(int argc, char* argv[]){
   ReadArguments(argc,argv);
@@ -21,8 +22,6 @@ int main(int argc, char* argv[]){
       perror("pipe make");
       exit(1);
     }
-    else
-      printf("made pipes %i\n\n", i);
     //make a worker
     Children[i] = fork();
     if(Children[i] == -1){
@@ -35,37 +34,25 @@ int main(int argc, char* argv[]){
     }
   }
 
-  //This is the Parent
+  //This is the Parent**********************************
   //open pipes from parent side
   int OpenToPipes[numWorkers];
   int OpenFromPipes[numWorkers];
-  for(int i=0; i<numWorkers; i++){
-    char* to_pipename = PipeName("to",i);
-    char* from_pipename = PipeName("from",i);
-    if((OpenToPipes[i] = open(to_pipename, O_WRONLY)) < 0){
-      perror("fifo open\n");
-      exit(1);
-    }
-    if((OpenFromPipes[i] = open(from_pipename, O_RDONLY)) < 0){
-      perror("fifo open\n");
-      exit(1);
-    }
-    free(to_pipename);
-    free(from_pipename);
-  }
+  OpenExecutorPipes(OpenToPipes,OpenFromPipes);
 
   //Read the directories paths
   int numPaths;
   char** Paths = ReadPaths(docfilename,&numPaths);
-  for(int i=0; i<numPaths; i++){
-    printf("%s", Paths[i]);
-  }
   //Distribute the paths to the workers
   DistributePaths(Children,Paths,numPaths,OpenToPipes);
 
+  //open console for user input
+  //Console(Children,OpenToPipes,OpenFromPipes);
+
+  //wait for all children to terminate
   int status;
   while(wait(&status) > 0);
-
+//unlink pipes
   FreePaths(Paths,numPaths);
 
   return 0;
