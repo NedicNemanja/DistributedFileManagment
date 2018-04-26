@@ -11,7 +11,6 @@
 void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes){
   printf("Console open:\n");
   char* command = NULL;
-  signal(SIGUSR1,msg_signal);
   do{
     char c = getWord(&command);
 
@@ -23,15 +22,36 @@ void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes){
       //read deadline
       int deadline;
       scanf("%d", &deadline);
-      //ignore
+      //ignore all until \n
       ReadTillNewline();
       //send the qurry to the children
       strcat(command,querry);
       SendToAll(Children,OpenToPipes,command);
-      //wait for the workers to answer
-      //sleep(deadline);
-      if(READ_FLAG/2 < numWorkers){
-        printf("%d/%d Workers answered in time.\n", READ_FLAG/2,numWorkers);
+      //wait for all workers to answer
+      //struct sigaction act;
+      //SetAnswerSignal();  //count the child answers using signals
+
+      int numAnswers = 0;
+      while(numAnswers < numWorkers){
+        //block until at least one pipe is available for read
+        struct pollfd PollPipes[numWorkers];
+        InitalizePipesPoll(&PollPipes,OpenFromPipes);
+        int val = poll(PollPipes,numWorkers,-1);
+        //check which pipes are available for read and read from them
+        for(int i=0; i<numWorkers; i++){
+          if(PollPipes[i]->revent == POLLIN){
+            numAnswers++;
+            char* msg = Receive(OpenFromPipes[i]);
+            if(systemtime < deadline){
+              printf("%s", msg);
+            }
+          }
+          else if(PollPipes[i]->revent == POLLERR)
+            exit(PIPE_POLLERR);
+        }
+      }
+      if(numAnswers < numWorkers){
+        printf("%d/%d Workers answered in time.\n", numAnswers,numWorkers);
       }
       PrintAnswers();
       continue;
@@ -64,6 +84,28 @@ void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes){
 }
 
 /**************Utility Functions***********************************************/
+
+void InitalizePipesPoll(struct pollfd* PollPipes, int* OpenFromPipes){
+  for(int i=0; i<numWorkers; i++){
+    PollPipes[i].fd = OpenFromPipes[i];
+    PollPipes[i].events = POLLIN; //only insterested when there is data to read
+  }
+}
+
+/*
+void SetAnswerSignal(struct sigaction* act){
+  ANSWERS = 0;
+  act->sa_handler = childAnswered;
+  sigemptyset(act->sa_mask);
+  adc->sa_flags = SA_SIGINFO;
+  sigaction(SIGUSR1,act,NULL);
+}
+
+
+void childAnswered(siginfo_t* info){
+  ANSWERS++;
+  int i = (info->si_pid);
+}*/
 
 /*Read a word from stdin dynamically and return the char at the end of the wrd*/
 char getWord(char** wordptr){

@@ -16,11 +16,6 @@ typedef int PipeHead;
 
 #define MAX_MSG_SIZE 1000
 
-/*This is a flag so the process knows how many messages are
-available for reading from the pipe. At the start of every porcess this
-flag is set to 0.*/
-int READ_FLAG;
-
 void msg_signal();
 
 /*Make 2 named pipes, one for the worker to read and one to write*/
@@ -47,12 +42,10 @@ CAUTION:when a pipe is full the write(2) will block
 */
 void Send(pid_t receiver, int fd, char* msg);
 
+/*Receive a message or a sequence of messages from a NONBLOCK named pipe.*/
 char* Receive(int fd);
 
 //Send the same message to all Children in said array
 void SendToAll(pid_t* Children,int* OpenToPipes,char* msg);
-
-/*number of digits in an int in base 10*/
-int NumDigits(int i);
 
 #endif

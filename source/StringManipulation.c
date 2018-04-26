@@ -37,6 +37,27 @@ void PrintWhitespace(int n){
   }
 }
 
+//return the first word from msg
+char* getInstruction(char* msg){
+  char* instruction = NULL;
+  int instr_size=0;
+  int msg_index = 0;
+  while(msg[msg_index] != ' '){
+    instr_size++;
+    instruction = realloc(instruction,sizeof(char)*instr_size);
+    NULL_Check(instruction);
+    msg_index++;
+  }
+  return instruction;
+}
+
+int NumDigits(int i){
+  if(i==0)
+  return 1;
+  /*do i+1 because in the case of i=10 log10(10)=1 and we need 2*/
+  return (int)ceil(log10(i+1));
+}
+
 
 
 /*Find where the next word in the document starts.

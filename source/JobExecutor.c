@@ -47,7 +47,7 @@ int main(int argc, char* argv[]){
   DistributePaths(Children,Paths,numPaths,OpenToPipes);
 
   //open console for user input
-  //Console(Children,OpenToPipes,OpenFromPipes);
+  Console(Children,OpenToPipes,OpenFromPipes);
 
   //wait for all children to terminate
   int status;

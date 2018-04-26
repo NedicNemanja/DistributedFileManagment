@@ -3,11 +3,11 @@
 #include "Word.h"
 #include "ErrorCodes.h"
 
-Word* CreateWord(char* path,int d_id,int word_size,int word_start,char* w_ptr){
+Word* CreateWord(int f_id,int d_id,int word_size,int word_start,char* w_ptr){
   Word* new_word = malloc(sizeof(Word));
   NULL_Check(new_word);
   //INITALIZE
-  new_word->path = path;
+  new_word->file = f_id;
   new_word->doc_id = d_id;
   new_word->size = word_size;
   new_word->start = word_start;
@@ -17,7 +17,7 @@ Word* CreateWord(char* path,int d_id,int word_size,int word_start,char* w_ptr){
 }
 
 Word* CopyWord(Word source){
-  return CreateWord(source.path,source.doc_id,source.size,source.start,
+  return CreateWord(source.fil_id,source.doc_id,source.size,source.start,
                     source.wordptr);
 }
 

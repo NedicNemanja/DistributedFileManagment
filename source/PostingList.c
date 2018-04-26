@@ -122,3 +122,17 @@ void PrintRecurrence(PostingList pl, int doc_id){
     printf("] does not appear in %d document.\n", doc_id);
   }
 }
+
+
+/*Given a PostingList group all its posts by file_id in a 2d array of Post*.*/ 
+void GroupByFile(Post*** PostsByFile, int* PostsInFile, PostingList* pl){
+  //for every post of this list find its file_id
+  for(int j=0; j<pl->doc_frequency; j++){
+    Post* post = getPost(Results[i],j);
+    //make room for one more Post* in this file
+    PostsInFile[post->file_id]++;
+    PostsByFile[post->fild_id] = realloc(sizeof(Post*)*PostsInFile[post->file_id]);
+    //and insert it in the back fo the array
+    PostsByFile[post->file_id][PostsInFile[post->file_id]-1] = post;
+  }
+}

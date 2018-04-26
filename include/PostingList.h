@@ -42,4 +42,7 @@ void PrintPostingList(PostingList*);
 void PrintAllPostingLists(ListNode*);
 void PrintRecurrence(PostingList pl, int doc_id);
 
+/*Given a PostingList group all its posts by file_id in a 2d array of Post*.*/
+void GroupByFile(Post*** PostsByFile, int* PostsInFile, PostingList* pl);
+
 #endif

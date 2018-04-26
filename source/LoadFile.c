@@ -22,7 +22,7 @@ unsigned long long int WORDS_IN_FILES = 0; /*total num of words in all files.*/
 
 /************************Reading file to create Map and Trie*******************/
 
-DocumentMAP* LoadFile(FILE* fp,char* path){
+DocumentMAP* LoadFile(FILE* fp,int file_id){
   DocumentMAP* Dmap = CreateMap();
   char c;
   do{ //for every line
@@ -43,7 +43,7 @@ DocumentMAP* LoadFile(FILE* fp,char* path){
         Dmap->doc_lenght[Dmap->size-1]++;
         WORDS_IN_FILES++;
         //initialize the word you just got
-        Word* word = CreateWord(path,                           //word->path
+        Word* word = CreateWord(file_id,                           //word->path
                                 Dmap->size-1,                   //word->doc_id
                                 char_index-word_start,          //word->size
                                 word_start,                     //word->start

@@ -12,8 +12,12 @@
 #include "ErrorCodes.h"
 #include "LoadFile.h"
 #include "DocumentMap.h"
+#include "StringManipulation.h"
+#include "Trie.h"
+#include "PostingList.h"
 
 int Worker(int wrk_num){
+  pid_t ppid =getppid();
   //open pipes from child side
   int to_pipe,from_pipe;
   OpenWorkerPipes(&to_pipe,&from_pipe,wrk_num);
@@ -29,19 +33,82 @@ int Worker(int wrk_num){
   FreeDirs(Dirs);
   //load files to memory and return their maps
   DocumentMAP** DocMaps = LoadFiles(FilePaths,numFiles);
+  //ready to receive instructions from parent
+  do{
+    char* msg = Receive(to_pipe);
+    char* instruction = getInstruction(msg);
+    if(!strcmp(command,"/search"){
+      //get the posting lists for the querry
+      int numResults;
+      PostingList** Results = Search(msg,&numResults);
+      char* answer = MakeAnswer(Results,numResults);
+      Send(ppid,from_pipe,answer);
+      continue;
+    }
 
-  for(int i=0; i<numFiles; i++){
-    printf("***************************************************\n");
-    printf("DocumentMAP of: %s\n", FilePaths[i]);
-    if(DocMaps[i] == NULL) continue;
-    PrintMAP(*(DocMaps[i]));
-  }
+  }while(instruction != "/exit")
 
 
   FreeFilePaths(FilePaths,numFiles);
   FreeDocMaps(DocMaps,numFiles);
   free(msg);
   return 0;
+}
+
+/*Find and return all the PostingLists of every word in the msg*/
+void Search(char* msg, int numResults){
+  Querry* querry = CreateQuerry(msg);
+
+  //find all the posting lists
+  PostingList** Results = malloc(sizeof(PostingList*)*(querry->size));
+  for(int i=0; i<querry->size; i++){
+    //if alarm deadline break
+    Results[i] = SearchTrie(querry->q[i],TrieRoot,1);
+  }
+  FreeQuerry(querry);
+
+  *numResults = querry->size;
+  return Results;
+}
+
+char* MakeAnswer( PostingList** Results, int numResults,
+                  char** FilePaths, int numFiles,
+                  DocumentMAP** DocMaps){
+  //for every posting list group its posts by file_id
+  Post*** PostsByFile = calloc(sizeof(Post**)*numFiles); //2d array of Post* grouped by file_id
+  int* PostsInFile = calloc(sizeof(int)*numFiles);  //number of posts per file
+  for(int i=0; i<numResults; i++){
+    //get every post of this file
+    GroupByFile(PostsByFile, PostsInFile, PostingList* Results[i]);
+  }
+
+  char* answer = "\0";
+  int answer_size = 0;
+  //for every file add its results in the answer
+  for(int i=0; i<numFiles; i++){
+        //include file path in the answer
+        answer_size += strlen(FilePaths[i])+2;
+        answer = realloc(sizeof(char)*(answer_size+1));
+        NULL_Check(answer);
+        sprintf(answer, "%s:\n", FilePaths[i]);
+        //include all the documents and their doc_id's (line & linenumbers)
+        for(int k=0; i<PostsInFile; j++){
+          Post* post = PostsByFile[i][j];
+          answer_size +=  NumDigits(post->doc_id)+2+
+                          strlen(DocMaps[i][post->doc_id])+1;
+          answer = realloc(sizeof(char)*(answer_size+1));
+          NULL_Check(answer);
+          sprintf(answer, "%d: %s\n", post->doc_id,DocMaps[i][post->doc_id]);
+        }
+  }
+  //freepostsbyfile and freepostsinfile
+  for(int i=0; i<numFiles; i++){
+    free(PostsByFile[i]);
+  }
+  free(PostsByFile);
+  free(PostsInFile);
+
+  return answer;
 }
 
 char** DivideDirs(char* msg,int* numDirs){

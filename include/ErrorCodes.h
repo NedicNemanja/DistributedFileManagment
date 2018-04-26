@@ -12,7 +12,8 @@ typedef enum ERRORCODE { OK=0,
                   UNSPECIFIED_i,
                   w_LESS_THAN_ONE,
                   CANT_OPEN_DIR,
-                  CANT_CLOSE_DIR
+                  CANT_CLOSE_DIR,
+                  PIPE_POLLERR
 } ERRORCODE;
 
 //this informs about the error that terminated the prog abruptly

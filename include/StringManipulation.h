@@ -10,6 +10,12 @@ void PrintChars(char* doc, int* index, int n);
 
 void PrintWhitespace(int n);
 
+//return the first word from msg
+char* getInstruction(char* msg);
+
+//num of digits in base 10 number
+int NumDigits(int i);
+
 /*
 /*Get the pointer of a word IN the document, that points at the first word
 after offset-many characters*

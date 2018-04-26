@@ -10,11 +10,7 @@
 #include <signal.h>
 #include "ErrorCodes.h"
 #include "Arguments.h"
-
-void msg_signal(){
-  signal(SIGUSR1, msg_signal);
-  READ_FLAG += 2; //header+msg=2messages
-}
+#include "StringManipulation.h"
 
 int MakePipePair(int i){
   char* pipename_to = PipeName("to",i);
@@ -118,12 +114,9 @@ printf("Sending msg %zu:<<%s>>\n", strlen(msg),msg);
   free(msg);
 }
 
-int READ_FLAG = 0;
-
 char* Receive(int fd){
   char* msg = NULL;
   int msg_size = 0;
-  if(READ_FLAG > 0){
     //read the header and get the msg size
     int header;
     read(fd,&header,sizeof(int));
@@ -140,9 +133,6 @@ char* Receive(int fd){
       NULL_Check(msg);
       strcat(msg,buffer);
       free(buffer);
-      READ_FLAG -= 2;
-      //pause until you get a signal for the next message of the sequence
-      pause();
       //read the new header
       int header;
       read(fd,&header,sizeof(int));
@@ -159,15 +149,13 @@ char* Receive(int fd){
       NULL_Check(msg);
       strcat(msg,buffer);
       free(buffer);
-      READ_FLAG -= 2;
     }
     else{ //there was only one message to begin with
       msg = malloc(sizeof(char)*header+1);
+      NULL_Check(msg);
       read(fd,msg,header+1);
-      READ_FLAG -= 2;
       printf("Received msg %zu:<<%s>>\n", strlen(msg),msg);
     }
-  }
   return msg;
 }
 
@@ -175,11 +163,4 @@ void SendToAll(pid_t* Children,int* OpenToPipes,char* msg){
   for(int i=0; i<numWorkers; i++){
     Send(Children[i],OpenToPipes[i],msg);
   }
-}
-
-int NumDigits(int i){
-  if(i==0)
-  return 1;
-  /*do i+1 because in the case of i=10 log10(10)=1 and we need 2*/
-  return (int)ceil(log10(i+1));
 }
