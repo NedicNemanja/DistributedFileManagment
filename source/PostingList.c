@@ -50,13 +50,13 @@ void FreePosts(Post* post){
 }
 
 //get the post at index from this posting list
-Post getPost(PostingList pl, int index){
+Post* getPost(PostingList* pl, int index){
     //might wanna check? if(index<0 || index>pl.doc_frequency-1)
-  Post* post = pl.post;
+  Post* post = pl->post;
   for(int i=1; i<=index; i++){
     post = post->next;
   }
-  return *post;
+  return post;
 }
 
 
@@ -69,7 +69,7 @@ Also we need to inform the post about the position of the word in this doc.*/
 void AddPost(PostingList* plist, Word word){
   (plist->term_frequency)++;
   //if post already exists in this document then we dont need a new post for it
-  if(plist->post->doc_id==word.doc_id && !strcmp(word.path,plist->post->path)){
+  if(plist->post->doc_id==word.doc_id && word.file_id==plist->post->file_id){
     (plist->post->recurrence)++;
     //remember where you found this word in the document
     Post_AddWordPosition(plist->post,word.start);
@@ -124,14 +124,15 @@ void PrintRecurrence(PostingList pl, int doc_id){
 }
 
 
-/*Given a PostingList group all its posts by file_id in a 2d array of Post*.*/ 
+/*Given a PostingList group all its posts by file_id in a 2d array of Post*.*/
 void GroupByFile(Post*** PostsByFile, int* PostsInFile, PostingList* pl){
   //for every post of this list find its file_id
   for(int j=0; j<pl->doc_frequency; j++){
-    Post* post = getPost(Results[i],j);
+    Post* post = getPost(pl,j);
     //make room for one more Post* in this file
     PostsInFile[post->file_id]++;
-    PostsByFile[post->fild_id] = realloc(sizeof(Post*)*PostsInFile[post->file_id]);
+    PostsByFile[post->file_id] = realloc(PostsByFile[post->file_id],
+                                    sizeof(Post*)*(PostsInFile[post->file_id]));
     //and insert it in the back fo the array
     PostsByFile[post->file_id][PostsInFile[post->file_id]-1] = post;
   }

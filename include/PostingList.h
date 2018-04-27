@@ -29,7 +29,7 @@ void FreePostingList(PostingList* pl);
 void FreePosts(Post* post);
 
 //get the post at index from this posting list
-Post getPost(PostingList pl, int index);
+Post* getPost(PostingList* pl, int index);
 
 /*This is called when a word that already exists in the Trie is found.
 If a post for this document already exists, then: recurrence+1

@@ -81,8 +81,7 @@ void OpenWorkerPipes(int* to_pipe, int* from_pipe, int wrk_num){
 }
 
 void Send(pid_t receiver, int fd, char* msg){
-  unsigned int msg_size = strlen(msg);
-printf("Sending msg %zu:<<%s>>\n", strlen(msg),msg);
+  unsigned int msg_size = strlen(msg)+1;
   //when breaking up the msg its important to know what's to be sent next
   unsigned int msg_offset = 0;
 
@@ -90,12 +89,12 @@ printf("Sending msg %zu:<<%s>>\n", strlen(msg),msg);
     PipeHead header;
     //in case the message cant fit adjust its size
     int real_size;
-    if(msg_size - msg_offset > MAX_MSG_SIZE-sizeof(int)){ //if msg can't fit
+    if(msg_size - msg_offset > MAX_MSG_SIZE){ //if msg can't fit
       //the msg is a part of a sequence
       header = (1 << (sizeof(int)*8-1) );
-      real_size = MAX_MSG_SIZE;
+      real_size = MAX_MSG_SIZE; //-1 cause we have to fit the \0 also
     }
-    else{                             //if the msg can fit
+    else{                             //if the msg can fit (<=MAX_MSG_SIZE)
       //the last msg of the sequence has 0 as lmb at header
       header = 0;
       real_size = msg_size-msg_offset;
@@ -105,17 +104,15 @@ printf("Sending msg %zu:<<%s>>\n", strlen(msg),msg);
     header += real_size; //include the size in the header
     write(fd,&header,sizeof(int));
     //send message
-    write(fd,msg+msg_offset,real_size+1);
+    write(fd,msg+msg_offset,real_size);
     msg_offset += real_size;
   }
-  //notify the receiver that he has a message
-  kill(receiver,SIGUSR1);
-  //msg sent, free it
-  free(msg);
+  printf("Sending msg %zu:<<%s>>\n", strlen(msg),msg);
 }
 
 char* Receive(int fd){
-  char* msg = NULL;
+  char* msg = malloc(sizeof(char));
+  msg[0] = '\0';
   int msg_size = 0;
     //read the header and get the msg size
     int header;
@@ -124,12 +121,13 @@ char* Receive(int fd){
     while(header < 0){
       //get one message in a buffer
       int buffer_size = header - (1 << (sizeof(int)*8-1) );
-      char* buffer = malloc(sizeof(char)*buffer_size+1);
+      char* buffer = malloc(sizeof(char)*(buffer_size+1));
       NULL_Check(buffer);
-      read(fd,buffer,buffer_size+1);
+      read(fd,buffer,buffer_size);
+      buffer[buffer_size] = '\0';
       //then concatenate the message with the buffer
       msg_size += buffer_size;
-      msg = realloc(msg,sizeof(char)*msg_size+1);
+      msg = realloc(msg,sizeof(char)*(msg_size+1));
       NULL_Check(msg);
       strcat(msg,buffer);
       free(buffer);
@@ -152,10 +150,13 @@ char* Receive(int fd){
     }
     else{ //there was only one message to begin with
       msg = malloc(sizeof(char)*header+1);
+      msg_size = header;
       NULL_Check(msg);
       read(fd,msg,header+1);
-      printf("Received msg %zu:<<%s>>\n", strlen(msg),msg);
     }
+  printf("Received msg %zu:<<%s>>\n", strlen(msg),msg);
+  if(msg_size == 0)
+    return NULL;
   return msg;
 }
 

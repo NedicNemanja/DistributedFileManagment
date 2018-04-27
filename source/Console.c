@@ -7,26 +7,34 @@
 #include "Console.h"
 #include "StringManipulation.h"
 #include "ErrorCodes.h"
+#include <poll.h>
+#include "Querry.h"
 
 void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes){
   printf("Console open:\n");
-  char* command = NULL;
   do{
+    char* command = NULL;
     char c = getWord(&command);
 
     /**************************************************************************/
     if(!strcmp(command,"/search")){
       //read querry
-      char* querry = ReadQuerry();
+      Querry* querry = CreateQuerryStdin();
       if(querry == NULL) continue;
+      char* querry_str = QuerryToStr(querry);
       //read deadline
       int deadline;
       scanf("%d", &deadline);
       //ignore all until \n
       ReadTillNewline();
-      //send the qurry to the children
-      strcat(command,querry);
-      SendToAll(Children,OpenToPipes,command);
+      //send the querry to the children
+      char* question = malloc(sizeof(char)*
+                              (strlen(command)+1+strlen(querry_str)+1));
+      strcpy(question,command);
+      strcat(question," ");
+      strcat(question,querry_str);
+      SendToAll(Children,OpenToPipes,question);
+      free(question);
       //wait for all workers to answer
       //struct sigaction act;
       //SetAnswerSignal();  //count the child answers using signals
@@ -35,52 +43,62 @@ void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes){
       while(numAnswers < numWorkers){
         //block until at least one pipe is available for read
         struct pollfd PollPipes[numWorkers];
-        InitalizePipesPoll(&PollPipes,OpenFromPipes);
+        InitalizePipesPoll(PollPipes,OpenFromPipes);
+      //  printf("poll bloc\n");
         int val = poll(PollPipes,numWorkers,-1);
+        //printf("poll unbloc\n");
+
         //check which pipes are available for read and read from them
         for(int i=0; i<numWorkers; i++){
-          if(PollPipes[i]->revent == POLLIN){
+          if(PollPipes[i].revents == POLLIN){
             numAnswers++;
             char* msg = Receive(OpenFromPipes[i]);
-            if(systemtime < deadline){
+            if(1/*systemtime < deadline*/){
               printf("%s", msg);
             }
+            free(msg);
           }
-          else if(PollPipes[i]->revent == POLLERR)
+          else if(PollPipes[i].revents == POLLERR)
             exit(PIPE_POLLERR);
         }
+        //printf("out\n");
       }
       if(numAnswers < numWorkers){
         printf("%d/%d Workers answered in time.\n", numAnswers,numWorkers);
       }
-      PrintAnswers();
+      FreeQuerry(querry);
+      free(querry_str);
       continue;
     }
 
     /**************************************************************************/
-    if(!strcmp(command,"/maxcount")){
+    else if(!strcmp(command,"/maxcount")){
 
       continue;
     }
 
     /**************************************************************************/
-    if(!strcmp(command,"/mincount")){
+    else if(!strcmp(command,"/mincount")){
 
       continue;
     }
     /**************************************************************************/
-    if(!strcmp(command,"/wc")){
+    else if(!strcmp(command,"/wc")){
 
       continue;
     }
     /**************************************************************************/
-    if(!strcmp(command,"/exit")){
-
-      continue;
+    else if(!strcmp(command,"/exit")){
+      //kill children
+      printf("Bye bye!\n");
+      break;
     }
-
-  }while(strcmp(command,"/exit"));
-  free(command);
+    else{
+      printf("%s unknown command.\n", command);
+    }
+    printf("loop\n");
+    free(command);
+  }while(1);
 }
 
 /**************Utility Functions***********************************************/
@@ -109,49 +127,17 @@ void childAnswered(siginfo_t* info){
 
 /*Read a word from stdin dynamically and return the char at the end of the wrd*/
 char getWord(char** wordptr){
-  char c = SkipWhitespace(stdin);
+//  char c = SkipWhitespace(stdin);
+char c = getchar();
   int size=0;
   while(c != '\n' && c != ' ' && c != '\t'){
     size++;
     *wordptr = realloc(*wordptr,sizeof(char)*(size+1));
     (*wordptr)[size-1] = c;
-    c = getc(stdin);
+    c = getchar();
   }
   (*wordptr)[size] = '\0';
   return c;
-}
-
-char* ReadQuerry(){
-  char* querry=NULL;
-  int qsize=0;
-  //read until you find "-d"
-  char c, prev_c='.';
-  c = getchar();
-  while(c != 'd' && prev_c != '-' && c!='\n'){
-    qsize++;
-    querry = realloc(querry,sizeof(char)*qsize);
-    NULL_Check(querry);
-    querry[qsize-1] = c;
-    c = getchar();
-  }
-  //remove the - and null terminate the string
-  if(prev_c == '-'){
-    querry[qsize-1] = '\0';
-  }
-  else{
-    querry = realloc(querry,sizeof(char)*qsize+1);
-    NULL_Check(querry);
-    querry[qsize] = '\0';
-  }
-  //exceptions
-  if(c=='\n'){
-    printf("Please specify deadline. Correct syntax: /search querry -d 1.123\n");
-    return NULL;
-  }
-  if(querry==NULL){
-    printf("No querry found. Correct syntax: /search querry -d deadline\n");
-  }
-  return querry;
 }
 
 /*Read till the end of the current stdin stream (terminates with \n)*/

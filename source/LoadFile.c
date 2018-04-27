@@ -92,7 +92,7 @@ DocumentMAP** LoadFiles(char** FilePaths,int numFiles){
       continue;
     }
     //load to map and trie
-    DocMaps[i] = LoadFile(fp,FilePaths[i]);
+    DocMaps[i] = LoadFile(fp,i);
     fclose(fp);
   }
   return DocMaps;

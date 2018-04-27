@@ -5,6 +5,7 @@
 #include "ErrorCodes.h"
 #include "ReallocDocument.h"
 #include <sys/ioctl.h>
+#include <math.h>
 
 /*Skip whitespace and return the first non-whitespace char you find.*/
 char SkipWhitespace(FILE* fp){
@@ -44,10 +45,12 @@ char* getInstruction(char* msg){
   int msg_index = 0;
   while(msg[msg_index] != ' '){
     instr_size++;
-    instruction = realloc(instruction,sizeof(char)*instr_size);
+    instruction = realloc(instruction,sizeof(char)*(instr_size+1));
     NULL_Check(instruction);
+    instruction[instr_size-1] = msg[msg_index];
     msg_index++;
   }
+  instruction[instr_size] = '\0';
   return instruction;
 }
 

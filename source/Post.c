@@ -6,7 +6,7 @@ Post* CreatePost(Word word){
   Post* post = malloc(sizeof(Post));
   NULL_Check(post);
   //initalize
-  post->path = word.path;
+  post->file_id = word.file_id;
   post->doc_id = word.doc_id;
   post->recurrence = 1;
   //mark where you found the word in doc

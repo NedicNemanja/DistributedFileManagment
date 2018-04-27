@@ -16,7 +16,7 @@ unsigned long long int WORDS_IN_FILES; /*total num of words in all files.*/
 
 /*Takes a open fp and maps its contents to a DocumentMAP + loads its words to
 the Trie.*/
-DocumentMAP* LoadFile(FILE* fp,char* path);
+DocumentMAP* LoadFile(FILE* fp,int fild_id);
 
 /*Load all files in FIles to memory. Skip the files that you cant open.
 Return an array of the DocumentMAPs.*/

@@ -2,13 +2,10 @@
 #define CONSOLE_H
 
 #include <sys/types.h>
+#include <poll.h>
 
 
 void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes);
-
-/*Read from stdin until you find "-d" and return what you read.
-On fail return NULL*/
-char* ReadQuerry();
 
 /*Read a word from stdin dynamically and return the char at the end of the wrd*/
 char getWord(char** wordptr);
@@ -17,5 +14,8 @@ char getWord(char** wordptr);
 void ReadTillNewline();
 
 void PrintAnswers();
+
+//Used to init all parent pipes for use in poll for POLLIN
+void InitalizePipesPoll(struct pollfd* PollPipes, int* OpenFromPipes);
 
 #endif
