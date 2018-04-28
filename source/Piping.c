@@ -103,11 +103,12 @@ void Send(pid_t receiver, int fd, char* msg){
     //send header
     header += real_size; //include the size in the header
     write(fd,&header,sizeof(int));
+    printf("sent header:%u\n",header);
     //send message
     write(fd,msg+msg_offset,real_size);
     msg_offset += real_size;
   }
-  printf("Sending msg %zu:<<%s>>\n", strlen(msg),msg);
+//  printf("Sending msg %zu:\n<<%s>>\n", strlen(msg),msg);
 }
 
 char* Receive(int fd){
@@ -117,8 +118,9 @@ char* Receive(int fd){
     //read the header and get the msg size
     int header;
     read(fd,&header,sizeof(int));
+    printf("received header(%d):%u\n",(header & (1 << (sizeof(int)*8-1))),header);
     //if this is a sequence of messages wait until you get the whole sequence
-    while(header < 0){
+    while( (header & (1 << (sizeof(int)*8-1))) ){ //while lmb != 0
       //get one message in a buffer
       int buffer_size = header - (1 << (sizeof(int)*8-1) );
       char* buffer = malloc(sizeof(char)*(buffer_size+1));
@@ -132,29 +134,31 @@ char* Receive(int fd){
       strcat(msg,buffer);
       free(buffer);
       //read the new header
-      int header;
       read(fd,&header,sizeof(int));
+      printf("received header(%d):%u\n",(header & (1 << (sizeof(int)*8-1))),header);
     }
+
     //this is the last message of the sequence
     if(msg_size>0){
       //get last message in buffer
-      char* buffer = malloc(sizeof(char)*header+1);
+      char* buffer = malloc(sizeof(char)*(header+1));
       NULL_Check(buffer);
-      read(fd,buffer,header+1);
+      read(fd,buffer,header);
+      buffer[header] = '\0';
       //then concatenate the message with the buffer
       msg_size += header;
-      msg = realloc(msg,sizeof(char)*msg_size+1);
+      msg = realloc(msg,sizeof(char)*(msg_size+1));
       NULL_Check(msg);
       strcat(msg,buffer);
       free(buffer);
     }
     else{ //there was only one message to begin with
-      msg = malloc(sizeof(char)*header+1);
+      msg = malloc(sizeof(char)*(header+1));
       msg_size = header;
       NULL_Check(msg);
-      read(fd,msg,header+1);
+      read(fd,msg,msg_size);
     }
-  printf("Received msg %zu:<<%s>>\n", strlen(msg),msg);
+//  printf("Received msg %zu:\n<<%s>>\n", strlen(msg),msg);
   if(msg_size == 0)
     return NULL;
   return msg;

@@ -7,6 +7,21 @@
 #include <sys/ioctl.h>
 #include <math.h>
 
+/*Read a word from stdin dynamically and return the char at the end of the wrd*/
+char getWord(char** wordptr){
+//  char c = SkipWhitespace(stdin);
+char c = getchar();
+  int size=0;
+  while(c != '\n' && c != ' ' && c != '\t'){
+    size++;
+    *wordptr = realloc(*wordptr,sizeof(char)*(size+1));
+    (*wordptr)[size-1] = c;
+    c = getchar();
+  }
+  (*wordptr)[size] = '\0';
+  return c;
+}
+
 /*Skip whitespace and return the first non-whitespace char you find.*/
 char SkipWhitespace(FILE* fp){
   char c;
@@ -39,11 +54,11 @@ void PrintWhitespace(int n){
 }
 
 //return the first word from msg
-char* getInstruction(char* msg){
+char* getWordStr(char* msg){
   char* instruction = NULL;
   int instr_size=0;
   int msg_index = 0;
-  while(msg[msg_index] != ' '){
+  while(msg[msg_index] != ' ' && msg[msg_index]!='\n' && msg[msg_index]!='\0'){
     instr_size++;
     instruction = realloc(instruction,sizeof(char)*(instr_size+1));
     NULL_Check(instruction);

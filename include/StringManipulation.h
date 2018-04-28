@@ -1,6 +1,8 @@
 #ifndef STRINGMANIPULATION_H
 #define STRINGMANIPULATION_H
 
+/*Read a word from stdin dynamically and return the char at the end of the wrd*/
+char getWord(char** wordptr);
 
 /*Skip whitespace and return the first non-whitespace char you find.*/
 char SkipWhitespace(FILE* fp);
@@ -11,7 +13,7 @@ void PrintChars(char* doc, int* index, int n);
 void PrintWhitespace(int n);
 
 //return the first word from msg
-char* getInstruction(char* msg);
+char* getWordStr(char* msg);
 
 //num of digits in base 10 number
 int NumDigits(int i);

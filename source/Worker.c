@@ -17,6 +17,8 @@
 #include "PostingList.h"
 #include "Querry.h"
 
+int DEADLINE;
+
 int Worker(int wrk_num){
   pid_t ppid =getppid();
   //open pipes from child side
@@ -36,14 +38,30 @@ int Worker(int wrk_num){
   char* instruction = NULL;
   do{
     char* msg = Receive(to_pipe);
-    instruction = getInstruction(msg);
-    if(!strcmp(instruction,"/search")){
+    instruction = getWordStr(msg);
+
+    if(!strcmp(instruction,"/search")){/***************************************/
+      //set deadline, do not send answer after deadline is over
+      DEADLINE=0;
+      signal(SIGUSR1,deadline_handler);
       //get the posting lists for the querry
       int numResults=0;
       PostingList** Results = Search(msg,&numResults);
+      sleep(10);
+      //answer for all files at once
       SendSearchAnswer(ppid,from_pipe,
                         Results,numResults,FilePaths,numFiles,DocMaps);
       continue;
+    }
+    else if(!strcmp(instruction,"/maxcount")){/********************************/
+      //get 1st word after instruction
+      char* keyword = getWordStr(msg+10);
+      //get the posting list of keyword
+      PostingList* pl = SearchTrie(keyword,TrieNode,1);
+      //find the post with the maxcount and return its file_id
+      int file_id = MaxCountPost(pl);
+      //send the file path as answer
+      Send(ppid,from_pipe,FilePaths[i]);
     }
 
   }while(instruction != "/exit");
@@ -54,6 +72,11 @@ int Worker(int wrk_num){
   free(msg);
   return 0;
 }
+
+void deadline_handler(int signum){
+  DEADLINE = 1;
+}
+
 
 PostingList** Search(char* msg, int* numResults){
   Querry* querry = CreateQuerry(msg);
@@ -71,6 +94,30 @@ PostingList** Search(char* msg, int* numResults){
 
   FreeQuerry(querry);
   return Results;
+}
+
+int MaxCountFile(PostingList* pl,char** FilePaths){
+  int max=-1;
+  int max_file_id;
+  for(int i=0; i<pl->doc_frequency; i++){
+    Post* post = getPost(pl,i);
+    if(post->recurrence > max)
+      max_file_id = post->file_id;
+    else if(post->recurrence = max){  //on equal choose aphabetically
+      if(StrCompare(FilePaths[post->file_id],FilePaths[max_file_id]) == -1 ){
+        
+      }
+    }
+  }
+  return max_file_id;
+}
+
+/*cmp 2 string alphabetically
+if st1>str2 return 1
+if str1=str2 return 0
+if str1<str2 return -1*/
+int StrCompare(char* str1,char* str2){
+
 }
 
 //send answers 1 by 1 for each line
@@ -174,7 +221,8 @@ void SendSearchAnswer(pid_t ppid, int from_pipe,
         }
         free(filepath_str);
   }
-  Send(ppid,from_pipe,total_answer);
+  if(DEADLINE != 1)
+    Send(ppid,from_pipe,total_answer);
   //freepostsbyfile and freepostsinfile
   for(int i=0; i<numFiles; i++){
     free(PostsByFile[i]);

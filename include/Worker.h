@@ -6,6 +6,9 @@
 
 int Worker();
 
+//sets the DEADLINE flag to 1 once the deadline is up
+void deadline_handler(int signum);
+
 void OpenWorkerPipes(int* to_pipe, int* from_pipe,int wrk_num);
 
 char** DivideDirs(char* msg,int* numDirs);
