@@ -15,8 +15,6 @@ Post* CreatePost(Word word);
 
 void FreePost(Post* post);
 
-
-
 //When a word is found, we mark where in the document we found it
 void Post_AddWordPosition(Post* post, int word_start);
 #endif

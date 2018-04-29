@@ -45,4 +45,15 @@ void PrintRecurrence(PostingList pl, int doc_id);
 /*Given a PostingList group all its posts by file_id in a 2d array of Post*.*/
 void GroupByFile(Post*** PostsByFile, int* PostsInFile, PostingList* pl);
 
+//Group All posts from Results by file in a 2d array of Post*
+Post*** GroupAllByFile(PostingList** Results, int numResults, int numFiles,
+                                                        int** PostsInFileptr);
+
+/*Find the file that has the biggest/smallest recurrence and return its file_id.
+If 2 files have the same recurrence then the file with alphabetical priority
+is choosen.*/
+int MaxRecurrenceFile(PostingList* pl,char** FilePaths,int* max);
+int MinRecurrenceFile(PostingList* pl,char** FilePaths,int* min);
+
+
 #endif

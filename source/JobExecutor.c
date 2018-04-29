@@ -52,8 +52,8 @@ int main(int argc, char* argv[]){
   //wait for all children to terminate
   int status;
   while(wait(&status) > 0);
-//unlink pipes
-  FreePaths(Paths,numPaths);
 
+  FreePaths(Paths,numPaths);
+  UnlinkExecutorPipes(OpenToPipes,OpenFromPipes);
   return 0;
 }

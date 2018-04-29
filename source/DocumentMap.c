@@ -47,6 +47,15 @@ void NewDocument(DocumentMAP* DMAP,int doc_size){
   NULL_Check(DMAP->map[doc_index]);
 }
 
+void DeleteDocument(DocumentMAP* Dmap){
+  //free document
+  free(Dmap->map[Dmap->size-1]);
+  //resize map
+  Dmap->size--;
+  Dmap->map = realloc(Dmap->map,sizeof(char*)*Dmap->size);
+  NULL_Check(Dmap->map);
+}
+
 
 void PrintMAP(DocumentMAP DMAP){
   for(int i=0; i<DMAP.size; i++){
@@ -56,4 +65,12 @@ void PrintMAP(DocumentMAP DMAP){
       printf("(size:%d)%d %s", (int)strlen(DMAP.map[i]),i,DMAP.map[i]);
     printf("\n");
   }
+}
+
+unsigned int GetNumLines(DocumentMAP** DocMaps, int numFiles){
+  unsigned int total_lines=0;
+  for(int i=0; i<numFiles; i++){
+    total_lines += DocMaps[i]->size;
+  }
+  return total_lines;
 }

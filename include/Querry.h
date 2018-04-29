@@ -16,6 +16,6 @@ Querry* CreateQuerryStdin();
 void FreeQuerry(Querry* querry);
 
 //return all the words as a string
-char* QuerryToStr(Querry* querry);
+char* QuerryToStr(Querry* querry,const char* delimeter);
 
 #endif

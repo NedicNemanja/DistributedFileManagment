@@ -28,6 +28,8 @@ char* PipeName(const char* str, int i);
 
 void OpenExecutorPipes(int* OpenToPipes, int* OpenFromPipes);
 
+void UnlinkExecutorPipes(int* OpenToPipes,int* OpenFromPipes);
+
 void OpenWorkerPipes(int* to_pipe,int* from_pipe,int wrk_num);
 
 /*Send a msg to a file descriptor using write.
@@ -39,6 +41,7 @@ At the end send SIGUSR1 signal to the receiver so he knows he is getting a msg.
 CAUTION:when a pipe is full the write(2) will block
         until sufficient data is read from the named pipe,
         thats why O_NONBLOCK must be disabled.
+Also write() is not protected from signal interrupts.
 */
 void Send(pid_t receiver, int fd, char* msg);
 

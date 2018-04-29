@@ -16,6 +16,12 @@ void FreeMap(DocumentMAP* DMAP);
 /*Make a new slot in the map for a new document. Allocate space for it.*/
 void NewDocument(DocumentMAP* DMAP,int doc_size);
 
+//Free last document from map and make it smaller by 1
+void DeleteDocument(DocumentMAP* DMAP);
+
 void PrintMAP(DocumentMAP DMAP);
+
+/*Return the total number of lines of all maps in DocMaps array*/
+unsigned int GetNumLines(DocumentMAP** DocMaps, int numFiles);
 
 #endif

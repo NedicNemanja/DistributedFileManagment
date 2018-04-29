@@ -2,6 +2,7 @@
 #define TRIE_H
 #include "AVL_tree.h"
 #include "PostingList.h"
+#include "Querry.h"
 
 /*A TrieNode contains an AVLnode.*/
 typedef struct TrieNode{
@@ -19,7 +20,11 @@ node has been created and fix the balance we keep a parent_call_flag for each
 avl tree.*/
 TrieNode* TrieInsert(TrieNode* node, Word* word,int key_size,int* parent_call_flag);
 
+//search only 1 word and return tis PostingList pointer
 PostingList* SearchTrie(char* word,TrieNode* node, int key_size);
+
+//search a whole querry and return PostingList pointers for every word
+PostingList** SearchTrieQuerry(Querry* querry, int* numResults);
 
 TrieNode* CreateTrieNode(char key);
 

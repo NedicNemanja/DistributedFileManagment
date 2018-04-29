@@ -9,16 +9,22 @@
 
 /*Read a word from stdin dynamically and return the char at the end of the wrd*/
 char getWord(char** wordptr){
-//  char c = SkipWhitespace(stdin);
-char c = getchar();
+  char* word = NULL;
+  //  char c = SkipWhitespace(stdin);
+  char c = getchar();
   int size=0;
   while(c != '\n' && c != ' ' && c != '\t'){
+    printf("%c", c);
     size++;
-    *wordptr = realloc(*wordptr,sizeof(char)*(size+1));
-    (*wordptr)[size-1] = c;
+    word = realloc(word,sizeof(char)*(size+2));
+    NULL_Check(word);
+    word[size-1] = c;
     c = getchar();
   }
-  (*wordptr)[size] = '\0';
+  if(word == NULL)
+    printf("fuck off");
+  word[size] = '\0';
+  *wordptr = word;
   return c;
 }
 
@@ -112,6 +118,32 @@ char GoToEndOfline(FILE* fp, int* DSize){
       (*DSize)++;
   }
   return c;
+}
+
+
+/*Read till the end of the current stdin stream (terminates with \n)*/
+void ReadTillNewline(){
+  char c;
+  do{
+    c = getc(stdin);
+  }while(c != '\n');
+}
+
+int mystrcmp(char *s1, char *s2)
+{
+	int maxStrLen, s1Len = strlen(s1), s2Len = strlen(s2);
+	maxStrLen = s1Len > s2Len ? s1Len : s2Len;
+
+	for (int i = 0; i < maxStrLen; i++) {
+		if (s1[i] == s2[i])
+			continue;
+		else if (s1[i] < s2[i])
+			return -1;
+		else if (s2[i] < s1[i])
+			return 1;
+	}
+
+	return 0; //if we get here the strings are equal
 }
 
 

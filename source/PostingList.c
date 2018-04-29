@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 #include "PostingList.h"
 #include "ErrorCodes.h"
+#include "StringManipulation.h"
 
 /*Here we keep all our posting lists and their words on a sorted manner,
 for the /df option. This is a head node its data is always empty.*/
@@ -136,4 +138,67 @@ void GroupByFile(Post*** PostsByFile, int* PostsInFile, PostingList* pl){
     //and insert it in the back fo the array
     PostsByFile[post->file_id][PostsInFile[post->file_id]-1] = post;
   }
+}
+
+//Group All posts from Results by file in a 2d array of Post*
+Post*** GroupAllByFile(PostingList** Results, int numResults, int numFiles,
+                                                        int** PostsInFileptr){
+  //2d array of Post* grouped by file_id
+  Post*** PostsByFile = calloc(numFiles,sizeof(Post**));
+  int* PostsInFile = malloc(sizeof(int)*numFiles);  //number of posts per file
+  for(int i=0; i<numFiles; i++){
+    PostsInFile[i] = 0;
+  }
+
+  for(int i=0; i<numResults; i++){
+    //get every post of this file
+    GroupByFile(PostsByFile, PostsInFile, Results[i]);
+  }
+
+  *PostsInFileptr = PostsInFile;
+  return PostsByFile;
+}
+
+int MaxRecurrenceFile(PostingList* pl,char** FilePaths,int *max_num){
+  int max = -1;
+  int max_file_id;
+  //check the recurrence for each file
+  for(int i=0; i<pl->doc_frequency; i++){
+    Post* post = getPost(pl,i);
+    //keep track of max recurrence found
+    if((int)post->recurrence > max){
+      max_file_id = post->file_id;
+      max = post->recurrence;
+    }
+    else if((int)post->recurrence == max){  //on equal choose aphabetically
+      if(mystrcmp(FilePaths[post->file_id],FilePaths[max_file_id]) == -1 ){
+        max_file_id = post->file_id;
+        max = post->recurrence;
+      }
+    }
+  }
+  *max_num = max;
+  return max_file_id;
+}
+
+int MinRecurrenceFile(PostingList* pl,char** FilePaths, int* min_num){
+  int min = INT_MAX;
+  int min_file_id;
+  //check the recurrence for each file
+  for(int i=0; i<pl->doc_frequency; i++){
+    Post* post = getPost(pl,i);
+    //keep track of min recurrence found
+    if((int)post->recurrence < min){
+      min_file_id = post->file_id;
+      min = post->recurrence;
+    }
+    else if((int)post->recurrence == min){  //on equal choose aphabetically
+      if(mystrcmp(FilePaths[post->file_id],FilePaths[min_file_id]) == -1 ){
+        min_file_id = post->file_id;
+        min = post->recurrence;
+      }
+    }
+  }
+  *min_num = min;
+  return min_file_id;
 }

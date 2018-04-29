@@ -52,14 +52,26 @@ void OpenExecutorPipes(int* OpenToPipes, int* OpenFromPipes){
   for(int i=0; i<numWorkers; i++){
     char* to_pipename = PipeName("to",i);
     char* from_pipename = PipeName("from",i);
-    if((OpenToPipes[i] = open(to_pipename, O_WRONLY)) < 0){
-      perror("fifo open\n");
-      exit(1);
-    }
-    if((OpenFromPipes[i] = open(from_pipename, O_RDONLY)) < 0){
-      perror("fifo open\n");
-      exit(1);
-    }
+    if((OpenToPipes[i] = open(to_pipename, O_WRONLY)) < 0)
+      exit(CANT_OPEN_FIFO);
+    if((OpenFromPipes[i] = open(from_pipename, O_RDONLY)) < 0)
+      exit(CANT_OPEN_FIFO);
+    free(to_pipename);
+    free(from_pipename);
+  }
+}
+
+void UnlinkExecutorPipes(int* OpenToPipes,int* OpenFromPipes){
+  for(int i=0; i<numWorkers; i++){
+    close(OpenToPipes[i]);
+    close(OpenFromPipes[i]);
+    //unlink pipes
+    char* to_pipename = PipeName("to",i);
+    char* from_pipename = PipeName("from",i);
+    if(unlink(to_pipename) != 0)
+      exit(CANT_UNLINK_FIFO);
+    if(unlink(from_pipename))
+      exit(CANT_UNLINK_FIFO);
     free(to_pipename);
     free(from_pipename);
   }
@@ -102,10 +114,12 @@ void Send(pid_t receiver, int fd, char* msg){
 
     //send header
     header += real_size; //include the size in the header
-    write(fd,&header,sizeof(int));
+    if(write(fd,&header,sizeof(int)) < sizeof(int))
+      exit(WRITE_ERR);
     printf("sent header:%u\n",header);
     //send message
-    write(fd,msg+msg_offset,real_size);
+    if(write(fd,msg+msg_offset,real_size) < real_size)
+      exit(WRITE_ERR);
     msg_offset += real_size;
   }
 //  printf("Sending msg %zu:\n<<%s>>\n", strlen(msg),msg);

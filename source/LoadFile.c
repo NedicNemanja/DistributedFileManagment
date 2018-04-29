@@ -8,7 +8,7 @@
 #include "Trie.h"
 #include "LoadFile.h"
 
-/*total count of all doc sizes of all the files*/
+/*total count of all doc sizes of all the files (in chars)*/
 unsigned long long int TOTAL_SIZE = 0;
 
 unsigned long long int MEAN_DOC_SIZE = 5;/*mean size of a document in characters
@@ -62,8 +62,7 @@ DocumentMAP* LoadFile(FILE* fp,int file_id){
     //most likely there will be more space allocated than needed for a document
     if(char_index == -1){
       //empty documents need no space and are marked as NULL in the map
-      free(Dmap->map[Dmap->size-1]);
-      Dmap->map[Dmap->size-1] = NULL;
+      DeleteDocument(Dmap);
       UpdateMEAN_DOC_SIZE(0,Dmap->size);
     }
     else{

@@ -3,6 +3,7 @@
 #include "Trie.h"
 #include "ErrorCodes.h"
 #include "Word.h"
+#include "Querry.h"
 
 //This is our Trie
 TrieNode* TrieRoot = NULL;
@@ -156,7 +157,7 @@ TrieNode* TrieInsert(TrieNode* node, Word* word,int key_size, int* parent_call_f
 }
 
 /*********************TRIE SEARCH**********************************************/
-
+//for 1 word
 PostingList* SearchTrie(char* word,TrieNode* node, int key_size){
   char key = word[key_size-1];
   if(node == NULL){  //base case1: if the word existed a node should be here
@@ -180,6 +181,22 @@ PostingList* SearchTrie(char* word,TrieNode* node, int key_size){
     //otherwise descend into sub_tree to search for the next key of the word
     return SearchTrie(word,node->sub_tree,key_size+1);
   }
+}
+
+//for a whole querry
+PostingList** SearchTrieQuerry(Querry* querry, int* numResults){
+  //find all the posting lists
+  PostingList** Results = malloc(sizeof(PostingList*)*(querry->size));
+  for(int i=0; i<querry->size; i++){
+    //if alarm deadline break
+    PostingList* res = SearchTrie(querry->q[i],TrieRoot,1);
+    if(res != NULL){  //if found
+      Results[i] = res;
+      (*numResults)++;
+    }
+  }
+
+  return Results;
 }
 
 /********************TRIE FREE*************************************************/

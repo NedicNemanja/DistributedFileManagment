@@ -106,7 +106,7 @@ void FreeQuerry(Querry* querry){
   free(querry);
 }
 
-char* QuerryToStr(Querry* querry){
+char* QuerryToStr(Querry* querry,const char* delimeter){
   //allocate adequate space for the sting,
   //to fit all the words and a space after each word
   int str_size=0;
@@ -120,7 +120,7 @@ char* QuerryToStr(Querry* querry){
   for(int i=0; i<querry->size; i++){
     strcat(str,querry->q[i]);
     if(i != querry->size-1)
-      strcat(str," ");
+      strcat(str,delimeter);
   }
   return str;
 }
