@@ -187,13 +187,13 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
 
 ERRORCODE CheckChildren(pid_t* Children, int* OpenToPipes, int* OpenFromPipes,
                               char** Paths, int numPaths){
-printf("CHecking children\n");
+//printf("CHecking children\n");
 int val;
   //check every child
   for(int i=0; i<numWorkers; i++){
     //if a child is dead revive it
     if((val = waitpid(Children[i],NULL,WNOHANG)) != 0){
-      printf("Child%d died.Reset pipes.\n", val);
+      //printf("Child%d died.Reset pipes.\n", val);
       //reset executor pipes
       UnlinkExecutorPipe(OpenToPipes,OpenFromPipes, i);
       if(MakePipePair(i) != 0){
@@ -214,10 +214,10 @@ int val;
       //this is the parent
       OpenExecutorPipe(OpenToPipes,OpenFromPipes, i);
       DistributePath(Children,Paths,numPaths,OpenToPipes, i);
-      printf("Child%d restered.\n", i);
+      //printf("Child%d restored.\n", i);
     }
   }
-printf("CHeck over%d.\n", val);
+//printf("CHeck over%d.\n", val);
   return THIS_IS_PARENT;
 }
 

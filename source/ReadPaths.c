@@ -90,8 +90,8 @@ char* MakeLoad(char** Paths, int numPaths,int* Paths_indexptr, int load_size){
     if(i>=numPaths) //dont get out of the paths array
       break;
     //add the strings
-    buffer_size += strlen(Paths[i]);
-    buffer = (char*)realloc(buffer,sizeof(char)*(strlen(Paths[i])+1));
+    buffer_size += strlen(Paths[i])+1;
+    buffer = (char*)realloc(buffer,sizeof(char)*(buffer_size+1));
     NULL_Check(buffer);
     strcat(buffer,Paths[i]);
     //move along in the paths array

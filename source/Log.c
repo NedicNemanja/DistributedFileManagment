@@ -1,6 +1,7 @@
 #include "Log.h"
 #include "ErrorCodes.h"
 #include "StringManipulation.h"
+#include "PostingList.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -42,9 +43,20 @@ char* GetTime(){
 
 /*Write a partial log for a /search,
 filepaths are written by WriteLogSearchFilepath*/
-void WriteLogSearch(FILE* fd, char* timestr, char* qtype, char* query){
-  fprintf(fd, "%s:%s:%s:", timestr,qtype,query);
-  free(query);
+void WriteLogSearch(FILE* fd, char* timestr, char* qtype,
+                      PostingList** Results,int numResults, char** FilePaths){
+  for(int i=0; i<numResults; i++){
+    char* word = PostingListWordGet(Results[i]);
+    fprintf(fd, "%s:%s:%s:", timestr,qtype,word);
+    //write all the filepaths this word was found in
+    for(int j=0; j<Results[i]->doc_frequency; j++){
+      Post* post = getPost(Results[i],j);
+      fprintf(fd, "%s:", FilePaths[post->file_id]);
+    }
+    free(word);
+    fprintf(fd, "\n");
+  }
+
 }
 
 void WriteLogSearchFilepath(FILE* fd, char* filepath){

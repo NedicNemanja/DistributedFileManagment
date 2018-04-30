@@ -1,0 +1,8 @@
+#!/bin/bash
+#every search of every worker
+#extract keywords only
+#sort and unique keywords
+#how many?
+result=$(grep '/search' ./log/* | cut -d ":" -f 6 | sort | uniq | wc -l)
+
+echo "Total number of (unique)keywords searched: ${result}"

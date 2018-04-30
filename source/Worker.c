@@ -22,6 +22,7 @@ volatile sig_atomic_t DEADLINE; //deadline flag,triggered by SIGUSR1
 
 int Worker(int wrk_num){
   signal(SIGPIPE,SIG_DFL);
+  signal(SIGCHLD,SIG_DFL);
   //open/create log file
   FILE* log_fd = OpenLog();
   pid_t ppid = getppid();
@@ -34,8 +35,12 @@ int Worker(int wrk_num){
   //parse directories and get their files
   int numDirs,numFiles;
   char** Dirs = DivideDirs(dirmsg,&numDirs);
+  for(int i=0; i<numDirs; i++)
+    printf("%s\n", Dirs[i]);
   free(dirmsg);
   char** FilePaths = GetDirFiles(Dirs,numDirs,&numFiles);
+  for(int i=0; i<numFiles; i++)
+    printf("%s\n", FilePaths[i]);
   FreeDirs(Dirs,numDirs);
   //load files to memory and return their maps
   DocumentMAP** DocMaps = LoadFiles(FilePaths,numFiles);
@@ -47,7 +52,7 @@ int Worker(int wrk_num){
 
     char* instruction = NULL;
     instruction = getWordStr(msg);
-
+PrintAllPostingLists(&PLIST);
     if(!strcmp(instruction,"/search")){/***************************************/
       //set deadline, do not send answer after deadline is over
       DEADLINE=0;
@@ -56,13 +61,14 @@ int Worker(int wrk_num){
       Querry* querry = CreateQuerry(msg);
       int numResults=0;
       PostingList** Results = SearchTrieQuerry(querry,&numResults);
-      //log
-      WriteLogSearch(log_fd,curr_time,instruction,QuerryToStr(querry," "));
+
       //if no results are found a empty string is sent to ppid
       if(numResults == 0){
         Send(ppid,from_pipe,"\0");
       }
       else{
+        //log
+        WriteLogSearch(log_fd,curr_time,instruction,Results,numResults,FilePaths);
         //Group All posts from Results by file in a 2d array of Post*
         int* PostsInFile;
         Post*** PostsByFile = GroupAllByFile(Results,numResults,numFiles,
@@ -187,10 +193,6 @@ void SendSearchAnswer(pid_t ppid, int from_pipe,
         char* filepath_str = malloc(sizeof(char)*(filepath_str_size+1));
         NULL_Check(filepath_str);
         sprintf(filepath_str, "%s:", FilePaths[i]);
-        //write log if there are posts linked with this file
-        if(PostsInFile[i]>0){
-          WriteLogSearchFilepath(log_fd, filepath_str);
-        }
 
         //get an answer for each line
         for(int j=0; j<PostsInFile[i]; j++){

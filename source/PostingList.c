@@ -61,6 +61,10 @@ Post* getPost(PostingList* pl, int index){
   return post;
 }
 
+char* PostingListWordGet(PostingList* pl){
+  return WordGet(pl->word);
+}
+
 
 /*This is called when a word that already exists in the Trie is found.
 If a post for this document already exists, then: recurrence+1

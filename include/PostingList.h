@@ -31,6 +31,9 @@ void FreePosts(Post* post);
 //get the post at index from this posting list
 Post* getPost(PostingList* pl, int index);
 
+//return a str that is the word this posting list belongs to, user must free str
+char* PostingListWordGet(PostingList* pl);
+
 /*This is called when a word that already exists in the Trie is found.
 If a post for this document already exists, then: recurrence+1
 Else create a new post for this document and add it to the start of the list.

@@ -15,4 +15,6 @@ Word* CopyWord(Word source);
 char getLetter(Word word, int letter_pos);
 void PrintWord(Word word);
 
+//allocate memory and return the word,user must free said memory
+char* WordGet(Word* word);
 #endif

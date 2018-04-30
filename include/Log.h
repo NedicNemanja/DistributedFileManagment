@@ -1,6 +1,7 @@
 #ifndef LOG_H
 #define LOG_H
 #include <stdio.h>
+#include "PostingList.h"
 
 FILE* OpenLog();
 
@@ -8,7 +9,8 @@ char* GetTime();
 
 /*Write a partial log for a /search,
 filepaths are written by WriteLogSearchFilepath*/
-void WriteLogSearch(FILE* fd, char* timestr, char* qtype, char* query);
+void WriteLogSearch(FILE* fd, char* timestr, char* qtype,
+                        PostingList** Results,int numResults, char** FilePaths);
 
 void WriteLogSearchFilepath(FILE* fd, char* filepath);
 
