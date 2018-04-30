@@ -115,6 +115,7 @@ void DistributePath(pid_t* Children, char** Paths, int numPaths, int* OpenToPipe
     //send the load only to the selected worker, ignore others
     if(wrk_num == i)
       Send(Children[i],OpenToPipes[i],loadstr);
+    free(loadstr);
   }
 }
 

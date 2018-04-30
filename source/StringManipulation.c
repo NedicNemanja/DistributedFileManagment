@@ -20,8 +20,10 @@ char getWord(char** wordptr){
     word[size-1] = c;
     c = getchar();
   }
-  word[size] = '\0';
-  *wordptr = word;
+  if(word != NULL){
+    word[size] = '\0';
+    *wordptr = word;
+  }
   return c;
 }
 

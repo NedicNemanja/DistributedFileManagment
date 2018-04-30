@@ -1,0 +1,29 @@
+Child1 reporting 10290.
+token:testing_dirs/dir_2
+Child0 reporting 10289.
+token:testing_dirs/dir_0
+Console open:
+CHecking children
+CHeck over0.
+1/2 Workers answered in time.
+testing_dirs/dir_0/Document1:0:
+ one
+testing_dirs/dir_0/Document1:1:
+ two
+CHecking children
+Child-1 died.Reset pipes.
+Child1 reporting 10297.
+token:testing_dirs/dir_2
+Console open:
+CHecking children
+CHeck over0.
+1/2 Workers answered in time.
+testing_dirs/dir_0/Document1:0:
+ one
+testing_dirs/dir_0/Document1:1:
+ two
+CHecking children
+Child-1 died.Reset pipes.
+Child1 restered.
+CHeck over-1.
+Bye bye!

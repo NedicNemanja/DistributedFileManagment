@@ -73,10 +73,16 @@ void UnlinkExecutorPipe(int* OpenToPipes,int* OpenFromPipes,int i){
   //unlink pipes
   char* to_pipename = PipeName("to",i);
   char* from_pipename = PipeName("from",i);
-  if(unlink(to_pipename) != 0)
+  if(unlink(to_pipename) != 0){
+    free(to_pipename);
+    free(from_pipename);
     exit(CANT_UNLINK_FIFO);
-  if(unlink(from_pipename))
+  }
+  if(unlink(from_pipename)){
+    free(to_pipename);
+    free(from_pipename);
     exit(CANT_UNLINK_FIFO);
+  }
   free(to_pipename);
   free(from_pipename);
 }
@@ -102,7 +108,7 @@ void OpenWorkerPipes(int* to_pipe, int* from_pipe, int wrk_num){
   free(from_pipename);
 }
 
-void Send(pid_t receiver, int fd, char* msg){
+ERRORCODE Send(pid_t receiver, int fd, char* msg){
   unsigned int msg_size = strlen(msg)+1;
   //when breaking up the msg its important to know what's to be sent next
   unsigned int msg_offset = 0;
@@ -128,26 +134,26 @@ void Send(pid_t receiver, int fd, char* msg){
     if( val < sizeof(int)){
       if(val > 0){
         //the write was interrupted try again
-        exit(WRITE_TRY_AGAIN);
+        return WRITE_TRY_AGAIN;
       }
       else
-        exit(WRITE_ERR);
+        return WRITE_ERR;
     }
-    printf("sent header:%u\n",header);
+    //printf("sent header:%u\n",header);
     //send message
     val = write(fd,msg+msg_offset,real_size);
     if(val < real_size){
       if(val > 0){
         //the write was interrupted try again
-        exit(WRITE_TRY_AGAIN);
+        return WRITE_TRY_AGAIN;
       }
       else
-        exit(WRITE_ERR);
+        return WRITE_ERR;
     }
     msg_offset += real_size;
   }
-  printf("Sending msg %zu:\n<<%s>>\n", strlen(msg),msg);
-
+  //printf("Sending msg %zu:\n<<%s>>\n", strlen(msg),msg);
+  return OK;
 }
 
 char* Receive(int fd){
@@ -158,7 +164,7 @@ char* Receive(int fd){
   //read the header and get the msg size
   int header;
   read(fd,&header,sizeof(int));
-  printf("received header(%d):%u\n",(header & (1 << (sizeof(int)*8-1))),header);
+  //printf("received header(%d):%u\n",(header & (1 << (sizeof(int)*8-1))),header);
     //if this is a sequence of messages wait until you get the whole sequence
     while( (header & (1 << (sizeof(int)*8-1))) ){ //while lmb != 0
       //get one message in a buffer
@@ -175,7 +181,7 @@ char* Receive(int fd){
       free(buffer);
       //read the new header
       read(fd,&header,sizeof(int));
-      printf("received header(%d):%u\n",(header & (1 << (sizeof(int)*8-1))),header);
+    //  printf("received header(%d):%u\n",(header & (1 << (sizeof(int)*8-1))),header);
     }
 
     //this is the last message of the sequence
@@ -198,7 +204,7 @@ char* Receive(int fd){
       NULL_Check(msg);
       read(fd,msg,msg_size);
     }
-printf("Received msg %zu:\n<<%s>>\n", strlen(msg),msg);
+//printf("Received msg %zu:\n<<%s>>\n", strlen(msg),msg);
   if(msg_size == 0){
     free(msg);
     return NULL;
@@ -206,8 +212,12 @@ printf("Received msg %zu:\n<<%s>>\n", strlen(msg),msg);
   return msg;
 }
 
-void SendToAll(pid_t* Children,int* OpenToPipes,char* msg){
+ERRORCODE SendToAll(pid_t* Children,int* OpenToPipes,char* msg){
   for(int i=0; i<numWorkers; i++){
-    Send(Children[i],OpenToPipes[i],msg);
+    ERRORCODE val;
+    if((val=Send(Children[i],OpenToPipes[i],msg)) != OK){
+      return val;
+    }
   }
+  return OK;
 }

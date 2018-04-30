@@ -36,22 +36,25 @@ int main(int argc, char* argv[]){
   }
 
   //This is the Parent**********************************
+  //dont let SIGCHLD of 1 worker interrupt poll() for others
+  signal(SIGCHLD,SIG_IGN);
+  //if a pipe dies ignore the signal and try to restore it later
+  signal(SIGPIPE,SIG_IGN);
   //open pipes from parent side
   int OpenToPipes[numWorkers];
   int OpenFromPipes[numWorkers];
   OpenExecutorPipes(OpenToPipes,OpenFromPipes);
-
   //Read the directories paths
   int numPaths;
   char** Paths = ReadPaths(docfilename,&numPaths);
   //Distribute the paths to the workers
   DistributePaths(Children,Paths,numPaths,OpenToPipes);
-  FreePaths(Paths,numPaths);
 
   //open console for user input
   ERRORCODE err = Console(Children,OpenToPipes,OpenFromPipes,
                               Paths,numPaths);
 
+  FreePaths(Paths,numPaths);
   //if this is the parent
   if(ogparent == getpid()){
     //wait for all children to terminate

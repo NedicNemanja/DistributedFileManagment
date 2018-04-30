@@ -183,16 +183,20 @@ PostingList* SearchTrie(char* word,TrieNode* node, int key_size){
   }
 }
 
-//for a whole querry
+//for a whole querry find the results(posting lists) and return an array of them
 PostingList** SearchTrieQuerry(Querry* querry, int* numResults){
   //find all the posting lists
-  PostingList** Results = malloc(sizeof(PostingList*)*(querry->size));
+  PostingList** Results = NULL;
   for(int i=0; i<querry->size; i++){
     //if alarm deadline break
     PostingList* res = SearchTrie(querry->q[i],TrieRoot,1);
     if(res != NULL){  //if found
-      Results[i] = res;
+      //resize Results array
       (*numResults)++;
+      Results = realloc(Results,sizeof(PostingList*)*(*numResults));
+      NULL_Check(Results);
+      //insert
+      Results[(*numResults)-1] = res;
     }
   }
 

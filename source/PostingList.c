@@ -150,6 +150,7 @@ Post*** GroupAllByFile(PostingList** Results, int numResults, int numFiles,
     PostsInFile[i] = 0;
   }
 
+  //for every Result(aka PostingList)
   for(int i=0; i<numResults; i++){
     //get every post of this file
     GroupByFile(PostsByFile, PostsInFile, Results[i]);

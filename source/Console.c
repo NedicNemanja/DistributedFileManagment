@@ -24,8 +24,6 @@ pid_t* CHILDREN; //used to send deadline signal to all children
 ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
                         char** Paths, int numPaths){
   CHILDREN = Children;
-  //if a pipe dies ignore the signal and try to restore it later
-  signal(SIGPIPE,SIG_IGN);
   printf("Console open:\n");
   do{
     //CHECK IF CHILDREN STILL ALIVE HERE
@@ -34,9 +32,13 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
     if(check != THIS_IS_PARENT)
       //if this is not the parent we dont want the process to continue
       return check;
+    //Children may live but the pipes could be broken
+    //CheckPipes(OpenToPipes,OpenFromPipes);
 
     char* command;
     char c = getWord(&command);
+    while(command == NULL)
+      c = getWord(&command); //dont accept empty input
     /**************************************************************************/
     if(!strcmp(command,"/search")){
       //read querry
@@ -56,47 +58,23 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
       strcpy(question,command);
       strcat(question," ");
       strcat(question,querry_str);
-      SendToAll(Children,OpenToPipes,question);
+      if(SendToAll(Children,OpenToPipes,question) != OK){
+        alarm(0);
+        fprintf(stderr, "Parent found one or more unresponsive children.\n");
+        printf("Try again.\n");
+        free(question);
+        FreeQuerry(querry);
+        free(querry_str);
+        free(command);
+        continue;
+      }
       free(question);
       //wait for all workers to answer
-
-      int numAnswers = 0; //num of workers that answered in time
       char* Answers[numWorkers];
-      InitalizeArray(Answers);
-      do{
-        //block until at least one pipe is available for read or a signal arrives
-        struct pollfd PollPipes[numWorkers];
-        InitalizePipesPoll(PollPipes,OpenFromPipes);
-        printf("poll bloc\n");
-        int val = poll(PollPipes,(nfds_t)numWorkers,-1);
-        printf("poll unbloc\n");
-
-        //check which pipes are available for read from them
-        for(int i=0; i<numWorkers; i++){
-          {
-            if(PollPipes[i].revents == POLLIN){       //there is data to be read
-
-              char* msg = Receive(OpenFromPipes[i]);
-              numAnswers++;
-              if(DEADLINE != 1)
-                Answers[i] = msg;
-              else{
-                free(msg);
-              }
-            }
-            else if(PollPipes[i].revents == POLLHUP){ //child closed connection
-              Answers[i] = NULL;
-            }
-            else if(PollPipes[i].revents == POLLERR)
-              exit(PIPE_POLLERR);
-          }
-        }
-      }while(numAnswers < numWorkers && DEADLINE!=1);
+      GetAllAnswers(Answers,OpenFromPipes);
       //if theres an alarm for a deadline, cancel it
       alarm(0);
-      if(numAnswers < numWorkers){
-        printf("%d/%d Workers answered in time.\n", numAnswers,numWorkers);
-      }
+      DEADLINE = 0;
       //print and free Answers
       PrintSearch(Answers);
       FreeQuerry(querry);
@@ -118,7 +96,14 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
       strcpy(question,command);
       strcat(question," ");
       strcat(question,keyword);
-      SendToAll(Children,OpenToPipes,question);
+      if(SendToAll(Children,OpenToPipes,question) != OK){
+        fprintf(stderr, "Parent found one or more unresponsive children.\n");
+        printf("Try again.\n");
+        free(question);
+        free(keyword);
+        free(command);
+        continue;
+      }
       free(keyword);
       free(question);
       //wait for all workers to answer
@@ -143,7 +128,14 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
       strcpy(question,command);
       strcat(question," ");
       strcat(question,keyword);
-      SendToAll(Children,OpenToPipes,question);
+      if(SendToAll(Children,OpenToPipes,question) != OK){
+        fprintf(stderr, "Parent found one or more unresponsive children.\n");
+        printf("Try again.\n");
+        free(question);
+        free(keyword);
+        free(command);
+        continue;
+      }
       free(keyword);
       free(question);
       //wait for all workers to answer
@@ -160,7 +152,12 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
       if(c != '\n')
         ReadTillNewline();
       //send the /wc command to all children
-      SendToAll(Children,OpenToPipes,command);
+      if(SendToAll(Children,OpenToPipes,command) != OK){
+        fprintf(stderr, "Parent found one or more unresponsive children.\n");
+        printf("Try again.\n");
+        free(command);
+        continue;
+      }
       //wait for all workers to answer
       char* Answers[numWorkers];
       GetAllAnswers(Answers,OpenFromPipes);
@@ -190,10 +187,13 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
 
 ERRORCODE CheckChildren(pid_t* Children, int* OpenToPipes, int* OpenFromPipes,
                               char** Paths, int numPaths){
-  //check every chikd
+printf("CHecking children\n");
+int val;
+  //check every child
   for(int i=0; i<numWorkers; i++){
     //if a child is dead revive it
-    if(waitpid(Children[i],NULL,WNOHANG) < 0){
+    if((val = waitpid(Children[i],NULL,WNOHANG)) != 0){
+      printf("Child%d died.Reset pipes.\n", val);
       //reset executor pipes
       UnlinkExecutorPipe(OpenToPipes,OpenFromPipes, i);
       if(MakePipePair(i) != 0){
@@ -214,15 +214,18 @@ ERRORCODE CheckChildren(pid_t* Children, int* OpenToPipes, int* OpenFromPipes,
       //this is the parent
       OpenExecutorPipe(OpenToPipes,OpenFromPipes, i);
       DistributePath(Children,Paths,numPaths,OpenToPipes, i);
+      printf("Child%d restered.\n", i);
     }
   }
+printf("CHeck over%d.\n", val);
   return THIS_IS_PARENT;
 }
 
 void GetAllAnswers(char* Answers[], int* OpenFromPipes){
+  int numAnswers = 0; //num of workers that answered in time
+  int numNonResposive = 0;  //num of workers that were found non responsive
   InitalizeArray(Answers);
-  int numAnswers = 0;
-  while(numAnswers < numWorkers){
+  do{
     //block until at least one pipe is available for read
     struct pollfd PollPipes[numWorkers];
     InitalizePipesPoll(PollPipes,OpenFromPipes);
@@ -234,16 +237,27 @@ void GetAllAnswers(char* Answers[], int* OpenFromPipes){
     for(int i=0; i<numWorkers; i++){
       {
         if(PollPipes[i].revents == POLLIN){
-          Answers[i] = Receive(OpenFromPipes[i]);
+          char* msg = Receive(OpenFromPipes[i]);
           numAnswers++;
+          if(DEADLINE != 1)
+            Answers[i] = msg;
+          else{
+            Answers[i] = NULL;
+            free(msg);
+          }
         }
-        else if(PollPipes[i].revents == POLLHUP){ //if pipe dead on other side
+        else if(PollPipes[i].revents == POLLHUP ||
+                PollPipes[i].revents == POLLERR ||
+                PollPipes[i].revents == POLLNVAL){
+          //unable to get answer form this child (chld dead or broken pipe)
           Answers[i] = NULL;
+          numNonResposive++;
         }
-        else if(PollPipes[i].revents == POLLERR)
-          exit(PIPE_POLLERR);
       }
     }
+  }while(numAnswers+numNonResposive < numWorkers);
+  if(numAnswers < numWorkers){
+    printf("%d/%d Workers answered in time.\n", numAnswers,numWorkers);
   }
 }
 

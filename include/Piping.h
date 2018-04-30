@@ -2,7 +2,7 @@
 #define PIPING_N
 
 #include <sys/types.h>
-
+#include "ErrorCodes.h"
 
 #define PIPE_DIR "./pipes/"
 
@@ -49,12 +49,12 @@ CAUTION:when a pipe is full the write(2) will block
         thats why O_NONBLOCK must be disabled.
 Also write() is not protected from signal interrupts.false(WRITE_TRY_AGAIN added)
 */
-void Send(pid_t receiver, int fd, char* msg);
+ERRORCODE Send(pid_t receiver, int fd, char* msg);
 
 /*Receive a message or a sequence of messages from a NONBLOCK named pipe.*/
 char* Receive(int fd);
 
 //Send the same message to all Children in said array
-void SendToAll(pid_t* Children,int* OpenToPipes,char* msg);
+ERRORCODE SendToAll(pid_t* Children,int* OpenToPipes,char* msg);
 
 #endif
