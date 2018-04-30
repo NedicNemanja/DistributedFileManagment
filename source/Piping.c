@@ -48,32 +48,42 @@ char* PipeName(const char* str, int i){
   return pipename;
 }
 
+//only 1 pipe
+void OpenExecutorPipe(int* OpenToPipes, int* OpenFromPipes,int i){
+  char* to_pipename = PipeName("to",i);
+  char* from_pipename = PipeName("from",i);
+  if((OpenToPipes[i] = open(to_pipename, O_WRONLY)) < 0)
+    exit(CANT_OPEN_FIFO);
+  if((OpenFromPipes[i] = open(from_pipename, O_RDONLY)) < 0)
+    exit(CANT_OPEN_FIFO);
+  free(to_pipename);
+  free(from_pipename);
+}
+//all pipes
 void OpenExecutorPipes(int* OpenToPipes, int* OpenFromPipes){
   for(int i=0; i<numWorkers; i++){
-    char* to_pipename = PipeName("to",i);
-    char* from_pipename = PipeName("from",i);
-    if((OpenToPipes[i] = open(to_pipename, O_WRONLY)) < 0)
-      exit(CANT_OPEN_FIFO);
-    if((OpenFromPipes[i] = open(from_pipename, O_RDONLY)) < 0)
-      exit(CANT_OPEN_FIFO);
-    free(to_pipename);
-    free(from_pipename);
+    OpenExecutorPipe(OpenToPipes,OpenFromPipes,i);
   }
 }
 
+//only 1 pipe
+void UnlinkExecutorPipe(int* OpenToPipes,int* OpenFromPipes,int i){
+  close(OpenToPipes[i]);
+  close(OpenFromPipes[i]);
+  //unlink pipes
+  char* to_pipename = PipeName("to",i);
+  char* from_pipename = PipeName("from",i);
+  if(unlink(to_pipename) != 0)
+    exit(CANT_UNLINK_FIFO);
+  if(unlink(from_pipename))
+    exit(CANT_UNLINK_FIFO);
+  free(to_pipename);
+  free(from_pipename);
+}
+//all pipess
 void UnlinkExecutorPipes(int* OpenToPipes,int* OpenFromPipes){
   for(int i=0; i<numWorkers; i++){
-    close(OpenToPipes[i]);
-    close(OpenFromPipes[i]);
-    //unlink pipes
-    char* to_pipename = PipeName("to",i);
-    char* from_pipename = PipeName("from",i);
-    if(unlink(to_pipename) != 0)
-      exit(CANT_UNLINK_FIFO);
-    if(unlink(from_pipename))
-      exit(CANT_UNLINK_FIFO);
-    free(to_pipename);
-    free(from_pipename);
+    UnlinkExecutorPipe(OpenToPipes,OpenFromPipes,i);
   }
 }
 
@@ -114,25 +124,41 @@ void Send(pid_t receiver, int fd, char* msg){
 
     //send header
     header += real_size; //include the size in the header
-    if(write(fd,&header,sizeof(int)) < sizeof(int))
-      exit(WRITE_ERR);
+    ssize_t val = write(fd,&header,sizeof(int));
+    if( val < sizeof(int)){
+      if(val > 0){
+        //the write was interrupted try again
+        exit(WRITE_TRY_AGAIN);
+      }
+      else
+        exit(WRITE_ERR);
+    }
     printf("sent header:%u\n",header);
     //send message
-    if(write(fd,msg+msg_offset,real_size) < real_size)
-      exit(WRITE_ERR);
+    val = write(fd,msg+msg_offset,real_size);
+    if(val < real_size){
+      if(val > 0){
+        //the write was interrupted try again
+        exit(WRITE_TRY_AGAIN);
+      }
+      else
+        exit(WRITE_ERR);
+    }
     msg_offset += real_size;
   }
-//  printf("Sending msg %zu:\n<<%s>>\n", strlen(msg),msg);
+  printf("Sending msg %zu:\n<<%s>>\n", strlen(msg),msg);
+
 }
 
 char* Receive(int fd){
   char* msg = malloc(sizeof(char));
+  NULL_Check(msg);
   msg[0] = '\0';
   int msg_size = 0;
-    //read the header and get the msg size
-    int header;
-    read(fd,&header,sizeof(int));
-    printf("received header(%d):%u\n",(header & (1 << (sizeof(int)*8-1))),header);
+  //read the header and get the msg size
+  int header;
+  read(fd,&header,sizeof(int));
+  printf("received header(%d):%u\n",(header & (1 << (sizeof(int)*8-1))),header);
     //if this is a sequence of messages wait until you get the whole sequence
     while( (header & (1 << (sizeof(int)*8-1))) ){ //while lmb != 0
       //get one message in a buffer
@@ -167,14 +193,16 @@ char* Receive(int fd){
       free(buffer);
     }
     else{ //there was only one message to begin with
-      msg = malloc(sizeof(char)*(header+1));
+      msg = realloc(msg,sizeof(char)*(header+1));
       msg_size = header;
       NULL_Check(msg);
       read(fd,msg,msg_size);
     }
-//  printf("Received msg %zu:\n<<%s>>\n", strlen(msg),msg);
-  if(msg_size == 0)
+printf("Received msg %zu:\n<<%s>>\n", strlen(msg),msg);
+  if(msg_size == 0){
+    free(msg);
     return NULL;
+  }
   return msg;
 }
 

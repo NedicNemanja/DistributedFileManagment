@@ -4,8 +4,14 @@
 #include <sys/types.h>
 #include <poll.h>
 #include <signal.h>
+#include "ErrorCodes.h"
 
-void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes);
+ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
+                                char** Paths, int numPaths);
+
+//Check if all children are still alive, revive these that are dead
+ERRORCODE CheckChildren(pid_t* Children, int* OpenToPipes, int* OpenFromPipes,
+                                char** Paths, int numPaths);
 
 /*Initalize Answers array to NULL and wait using poll() for all children to
 answer. Return the Answers array*/

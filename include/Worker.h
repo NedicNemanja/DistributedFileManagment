@@ -11,12 +11,6 @@ void deadline_handler(int signum);
 
 void OpenWorkerPipes(int* to_pipe, int* from_pipe,int wrk_num);
 
-char** DivideDirs(char* msg,int* numDirs);
-void FreeDirs(char**);
-
-char** GetDirFiles(char** Dirs, int numDirs, int* numFiles);
-void FreeFilePaths(char**,int);
-
 //send answers 1 by 1 for each line (not used)
 char* SendSearchAnswers( pid_t ppid, int from_pipe,
                     PostingList** Results, int numResults,

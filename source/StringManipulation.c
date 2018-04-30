@@ -14,15 +14,12 @@ char getWord(char** wordptr){
   char c = getchar();
   int size=0;
   while(c != '\n' && c != ' ' && c != '\t'){
-    printf("%c", c);
     size++;
     word = realloc(word,sizeof(char)*(size+2));
     NULL_Check(word);
     word[size-1] = c;
     c = getchar();
   }
-  if(word == NULL)
-    printf("fuck off");
   word[size] = '\0';
   *wordptr = word;
   return c;
@@ -61,18 +58,19 @@ void PrintWhitespace(int n){
 
 //return the first word from msg
 char* getWordStr(char* msg){
-  char* instruction = NULL;
+  char* word = NULL;
   int instr_size=0;
   int msg_index = 0;
   while(msg[msg_index] != ' ' && msg[msg_index]!='\n' && msg[msg_index]!='\0'){
     instr_size++;
-    instruction = realloc(instruction,sizeof(char)*(instr_size+1));
-    NULL_Check(instruction);
-    instruction[instr_size-1] = msg[msg_index];
+    word = realloc(word,sizeof(char)*(instr_size+1));
+    NULL_Check(word);
+    word[instr_size-1] = msg[msg_index];
     msg_index++;
   }
-  instruction[instr_size] = '\0';
-  return instruction;
+  if(word != NULL)
+    word[instr_size] = '\0';
+  return word;
 }
 
 int NumDigits(int i){

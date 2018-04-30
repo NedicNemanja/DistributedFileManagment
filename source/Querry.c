@@ -100,7 +100,7 @@ Querry* CreateQuerryStdin(){
 }
 
 void FreeQuerry(Querry* querry){
-  for(int i=0; i<querry->size; i++){
+  for(unsigned int i=0; i<(querry->size); i++){
     free(querry->q[i]);
   }
   free(querry);

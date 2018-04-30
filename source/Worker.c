@@ -5,7 +5,6 @@
 #include <sys/wait.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <dirent.h>
 #include <string.h>
 #include "Piping.h"
 #include "Worker.h"
@@ -17,10 +16,12 @@
 #include "PostingList.h"
 #include "Querry.h"
 #include "Log.h"
+#include "ReadPaths.h"
 
 volatile sig_atomic_t DEADLINE; //deadline flag,triggered by SIGUSR1
 
 int Worker(int wrk_num){
+  signal(SIGPIPE,SIG_DFL);
   //open/create log file
   FILE* log_fd = OpenLog();
   pid_t ppid = getppid();
@@ -29,12 +30,13 @@ int Worker(int wrk_num){
   OpenWorkerPipes(&to_pipe,&from_pipe,wrk_num);
   //pipes ready
   //block until you receive a message sequence (these will be the dirs)
-  char* msg = Receive(to_pipe);
+  char* dirmsg = Receive(to_pipe);
   //parse directories and get their files
   int numDirs,numFiles;
-  char** Dirs = DivideDirs(msg,&numDirs);
+  char** Dirs = DivideDirs(dirmsg,&numDirs);
+  free(dirmsg);
   char** FilePaths = GetDirFiles(Dirs,numDirs,&numFiles);
-  FreeDirs(Dirs);
+  FreeDirs(Dirs,numDirs);
   //load files to memory and return their maps
   DocumentMAP** DocMaps = LoadFiles(FilePaths,numFiles);
   //ready to receive instructions from parent
@@ -157,7 +159,8 @@ int Worker(int wrk_num){
 
   FreeFilePaths(FilePaths,numFiles);
   FreeDocMaps(DocMaps,numFiles);
-  free(msg);
+  FreeTrie(TrieRoot);
+  FreeList(PLIST.next);
   close(to_pipe);
   close(from_pipe);
   fclose(log_fd);
@@ -251,75 +254,6 @@ void SendWcAnswer( pid_t ppid, int from_pipe, unsigned total_lines,
 }
 
 /**************FILES AND DIRS***********************************************/
-
-char** DivideDirs(char* msg,int* numDirs){
-  char** Dirs = NULL;
-  *numDirs = 0;
-  int offset=0;
-  //break up the string into tokens and store each token in Dirs
-  char* token = strtok(msg,"\n");
-  while(token != NULL){
-    (*numDirs)++;
-    Dirs = realloc(Dirs,sizeof(char*)*(*numDirs));
-    NULL_Check(Dirs);
-    Dirs[(*numDirs)-1] = token;
-    token =  strtok(NULL,"\n");
-  }
-
-  return Dirs;
-}
-
-void FreeDirs(char** Dirs){
-  free(Dirs);
-}
-
-char** GetDirFiles(char** Dirs, int numDirs, int* numFiles){
-  char** Files = NULL;
-  *numFiles = 0;
-
-  for(int i=0; i<numDirs; i++){
-    //open directory
-    DIR* dir = opendir(Dirs[i]);
-    if(dir == NULL){
-      perror("Cant open dir\n");
-      exit(CANT_OPEN_DIR);
-    }
-    //read files  from directory
-    struct dirent* file;
-    while( (file = readdir(dir)) != NULL){
-      //ignore current(.) and parent(..) dirs
-      if((strcmp(file->d_name,".")==0) || (strcmp(file->d_name,"..")==0))
-        continue;
-      //resize Files array
-      (*numFiles)++;
-      Files = realloc(Files,sizeof(char*)*(*numFiles));
-      NULL_Check(Files);
-      //copy the filename to the array
-      Files[(*numFiles)-1] = malloc(sizeof(char)*(strlen(Dirs[i])+1+
-                                                  strlen(file->d_name)+1));
-      NULL_Check(Files[(*numFiles)-1]);
-      strcpy(Files[(*numFiles)-1],Dirs[i]);
-      strcat(Files[(*numFiles)-1],"/");
-      strcat(Files[(*numFiles)-1],file->d_name);
-    }
-    //close directory
-    if(closedir(dir) != 0){
-      perror("Failed to close dir\n");
-      exit(CANT_CLOSE_DIR);
-    }
-  }
-
-  return Files;
-}
-
-void FreeFilePaths(char** FilePaths, int numFiles){
-  for(int i=0; i<numFiles; i++){
-    free(FilePaths[i]);
-    FilePaths[i] = NULL;
-  }
-  free(FilePaths);
-}
-
 
 //send answers 1 by 1 for each line
 char* SendSearchAnswers(pid_t ppid, int from_pipe,

@@ -2,27 +2,38 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <sys/poll.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <limits.h>
 #include "Arguments.h"
 #include "Piping.h"
 #include "Console.h"
 #include "StringManipulation.h"
 #include "ErrorCodes.h"
-#include <sys/poll.h>
-#include <fcntl.h>
 #include "Querry.h"
-#include <unistd.h>
-#include <limits.h>
+#include "Worker.h"
+#include "ReadPaths.h"
 
 
 volatile sig_atomic_t DEADLINE;    //1 if deadline is up, 0 otherwise
 pid_t* CHILDREN; //used to send deadline signal to all children
 
-void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes){
+ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
+                        char** Paths, int numPaths){
   CHILDREN = Children;
+  //if a pipe dies ignore the signal and try to restore it later
+  signal(SIGPIPE,SIG_IGN);
   printf("Console open:\n");
   do{
     //CHECK IF CHILDREN STILL ALIVE HERE
-    
+    ERRORCODE check = CheckChildren(Children,OpenToPipes,OpenFromPipes,
+                                                        Paths,numPaths);
+    if(check != THIS_IS_PARENT)
+      //if this is not the parent we dont want the process to continue
+      return check;
 
     char* command;
     char c = getWord(&command);
@@ -64,7 +75,7 @@ void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes){
         //check which pipes are available for read from them
         for(int i=0; i<numWorkers; i++){
           {
-            if(PollPipes[i].revents == POLLIN){
+            if(PollPipes[i].revents == POLLIN){       //there is data to be read
 
               char* msg = Receive(OpenFromPipes[i]);
               numAnswers++;
@@ -74,10 +85,11 @@ void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes){
                 free(msg);
               }
             }
+            else if(PollPipes[i].revents == POLLHUP){ //child closed connection
+              Answers[i] = NULL;
+            }
             else if(PollPipes[i].revents == POLLERR)
               exit(PIPE_POLLERR);
-            else if(PollPipes[i].revents == POLLHUP)
-              printf("wtf\n");
           }
         }
       }while(numAnswers < numWorkers && DEADLINE!=1);
@@ -99,6 +111,10 @@ void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes){
       //send the question to all children
       char* keyword = NULL;
       c = getWord(&keyword);
+      //ignore until newline
+      if(c != '\n')
+        ReadTillNewline();
+      //make question
       char* question = malloc(sizeof(char)*(9+1+strlen(keyword)+1));
       strcpy(question,command);
       strcat(question," ");
@@ -119,6 +135,10 @@ void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes){
       //send the question to all children
       char* keyword=NULL;
       c = getWord(&keyword);
+      //ignore until newline
+      if(c != '\n')
+        ReadTillNewline();
+      //make question
       char* question = malloc(sizeof(char)*(9+1+strlen(keyword)+1));
       strcpy(question,command);
       strcat(question," ");
@@ -135,6 +155,9 @@ void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes){
     }
     /**************************************************************************/
     else if(!strcmp(command,"/wc")){
+      //ignore until newline
+      if(c != '\n')
+        ReadTillNewline();
       //send the /wc command to all children
       SendToAll(Children,OpenToPipes,command);
       //wait for all workers to answer
@@ -155,9 +178,42 @@ void Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes){
       printf("%s unknown command.\n", command);
     }
   }while(1);
+
+  return OK;
 }
 
 /**************Utility Functions***********************************************/
+
+ERRORCODE CheckChildren(pid_t* Children, int* OpenToPipes, int* OpenFromPipes,
+                              char** Paths, int numPaths){
+  //check every chikd
+  for(int i=0; i<numWorkers; i++){
+    //if a child is dead revive it
+    if(waitpid(Children[i],NULL,WNOHANG) < 0){
+      //reset executor pipes
+      UnlinkExecutorPipe(OpenToPipes,OpenFromPipes, i);
+      if(MakePipePair(i) != 0){
+        perror("pipe make");
+        exit(CANT_MAKE_PIPE);
+      }
+      //revive
+      //make a worker
+      Children[i] = fork();
+      if(Children[i] == -1){
+        perror("fork fail\n");
+        exit(FORK_FAIL);
+      }
+      if(Children[i] == 0){ //this is the child
+        printf("Child%d reporting %d.\n", i, getpid());
+        return Worker(i);
+      }
+      //this is the parent
+      OpenExecutorPipe(OpenToPipes,OpenFromPipes, i);
+      DistributePath(Children,Paths,numPaths,OpenToPipes, i);
+    }
+  }
+  return THIS_IS_PARENT;
+}
 
 void GetAllAnswers(char* Answers[], int* OpenFromPipes){
   InitalizeArray(Answers);
@@ -177,6 +233,9 @@ void GetAllAnswers(char* Answers[], int* OpenFromPipes){
           Answers[i] = Receive(OpenFromPipes[i]);
           printf("%s\n", Answers[i]);
           numAnswers++;
+        }
+        else if(PollPipes[i].revents == POLLHUP){ //if pipe dead on other side
+          Answers[i] = NULL;
         }
         else if(PollPipes[i].revents == POLLERR)
           exit(PIPE_POLLERR);

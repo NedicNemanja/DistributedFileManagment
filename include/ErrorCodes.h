@@ -16,7 +16,11 @@ typedef enum ERRORCODE { OK=0,
                   PIPE_POLLERR,
                   CANT_UNLINK_FIFO,
                   CANT_OPEN_FIFO,
-                  WRITE_ERR
+                  WRITE_ERR,
+                  WRITE_TRY_AGAIN,
+                  THIS_IS_PARENT,
+                  CANT_MAKE_PIPE,
+                  FORK_FAIL
 } ERRORCODE;
 
 //this informs about the error that terminated the prog abruptly

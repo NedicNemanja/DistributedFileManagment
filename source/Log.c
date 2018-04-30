@@ -18,6 +18,8 @@ FILE* OpenLog(){
   NULL_Check(filename);
   strcpy(filename,"./log/Worker_");
   strcat(filename,buffer);
+  free(buffer);
+
   FILE* fd = fopen(filename,"w+");
   free(filename);
   if(fd == NULL)
@@ -42,6 +44,7 @@ char* GetTime(){
 filepaths are written by WriteLogSearchFilepath*/
 void WriteLogSearch(FILE* fd, char* timestr, char* qtype, char* query){
   fprintf(fd, "%s:%s:%s:", timestr,qtype,query);
+  free(query);
 }
 
 void WriteLogSearchFilepath(FILE* fd, char* filepath){

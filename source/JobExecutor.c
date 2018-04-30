@@ -14,6 +14,7 @@
 int main(int argc, char* argv[]){
   ReadArguments(argc,argv);
 
+  pid_t ogparent = getpid();
   //start workers
   pid_t Children[numWorkers];
   for(int i=0; i<numWorkers; i++){
@@ -26,7 +27,7 @@ int main(int argc, char* argv[]){
     Children[i] = fork();
     if(Children[i] == -1){
       perror("fork fail\n");
-      exit(2);
+      exit(FORK_FAIL);
     }
     if(Children[i] == 0){ //this is the child
       printf("Child%d reporting %d.\n", i, getpid());
@@ -45,15 +46,19 @@ int main(int argc, char* argv[]){
   char** Paths = ReadPaths(docfilename,&numPaths);
   //Distribute the paths to the workers
   DistributePaths(Children,Paths,numPaths,OpenToPipes);
+  FreePaths(Paths,numPaths);
 
   //open console for user input
-  Console(Children,OpenToPipes,OpenFromPipes);
+  ERRORCODE err = Console(Children,OpenToPipes,OpenFromPipes,
+                              Paths,numPaths);
 
-  //wait for all children to terminate
-  int status;
-  while(wait(&status) > 0);
+  //if this is the parent
+  if(ogparent == getpid()){
+    //wait for all children to terminate
+    int status;
+    while(wait(&status) > 0);
 
-  FreePaths(Paths,numPaths);
-  UnlinkExecutorPipes(OpenToPipes,OpenFromPipes);
-  return 0;
+    UnlinkExecutorPipes(OpenToPipes,OpenFromPipes);
+  }
+  return err;
 }

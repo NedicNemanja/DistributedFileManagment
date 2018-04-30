@@ -16,19 +16,25 @@ typedef int PipeHead;
 
 #define MAX_MSG_SIZE 1000
 
-void msg_signal();
 
 /*Make 2 named pipes, one for the worker to read and one to write*/
 int MakePipePair(int i);
 
-/*Returns the conventional name of a workers pipe
+/*Returns (the conventional) name of a workers pipe
 example: PipeName("to",1) returns "./PipeDirectory/to1"
 CAUTION: user must free the pipename you got after this call.*/
 char* PipeName(const char* str, int i);
 
+//only 1 pipe
+void OpenExecutorPipe(int* OpenToPipes, int* OpenFromPipes, int i);
+//all pipes
 void OpenExecutorPipes(int* OpenToPipes, int* OpenFromPipes);
 
+//only 1 pipe
+void UnlinkExecutorPipe(int* OpenToPipes,int* OpenFromPipes,int i);
+//all pipes
 void UnlinkExecutorPipes(int* OpenToPipes,int* OpenFromPipes);
+
 
 void OpenWorkerPipes(int* to_pipe,int* from_pipe,int wrk_num);
 
@@ -41,7 +47,7 @@ At the end send SIGUSR1 signal to the receiver so he knows he is getting a msg.
 CAUTION:when a pipe is full the write(2) will block
         until sufficient data is read from the named pipe,
         thats why O_NONBLOCK must be disabled.
-Also write() is not protected from signal interrupts.
+Also write() is not protected from signal interrupts.false(WRITE_TRY_AGAIN added)
 */
 void Send(pid_t receiver, int fd, char* msg);
 
