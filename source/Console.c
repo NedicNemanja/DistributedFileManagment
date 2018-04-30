@@ -52,8 +52,7 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
       SetDeadlineAlarm(deadline);
       ReadTillNewline();
       //send the querry to the children
-      char* question = malloc(sizeof(char)*
-                              (7+1+strlen(querry_str)+1));
+      char* question = malloc(sizeof(char)*(7+1+strlen(querry_str)+1));
       strcpy(question,command);
       strcat(question," ");
       strcat(question,querry_str);

@@ -41,8 +41,6 @@ Querry* CreateQuerry(char* msg){
       querry->q = realloc(querry->q,sizeof(char*)*(querry->size));
       NULL_Check(querry->q);
       //insert word
-      querry->q[querry->size-1] = malloc(sizeof(char*));
-      NULL_Check(querry->q);
       querry->q[querry->size-1] = word;
     }
   }while(strcmp(word,"-d") && msg[msg_index]!='\0' && msg[msg_index]!='\n');
@@ -78,8 +76,6 @@ Querry* CreateQuerryStdin(){
       querry->q = realloc(querry->q,sizeof(char*)*(querry->size));
       NULL_Check(querry->q);
       //insert word
-      querry->q[querry->size-1] = malloc(sizeof(char*));
-      NULL_Check(querry->q);
       querry->q[querry->size-1] = word;
     }
   }while(strcmp(word,"-d") && c !='\n');
@@ -96,6 +92,7 @@ Querry* CreateQuerryStdin(){
     printf("No querry found. Correct syntax: /search querry -d deadline\n");
     return NULL;
   }
+  free(word);
   return querry;
 }
 
@@ -103,6 +100,7 @@ void FreeQuerry(Querry* querry){
   for(unsigned int i=0; i<(querry->size); i++){
     free(querry->q[i]);
   }
+  free(querry->q);
   free(querry);
 }
 

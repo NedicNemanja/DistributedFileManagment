@@ -218,6 +218,7 @@ void SendSearchAnswer(pid_t ppid, int from_pipe,
 
   if(DEADLINE != 1)
     Send(ppid,from_pipe,total_answer);
+  free(total_answer);
   //freepostsbyfile and freepostsinfile
   for(int i=0; i<numFiles; i++){
     free(PostsByFile[i]);
