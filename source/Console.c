@@ -164,6 +164,7 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
       //wait for all workers to answer
       char* Answers[numWorkers];
       GetAllAnswers(Answers,OpenFromPipes);
+      //print and free answers
       PrintWc(Answers);
       free(command);
       continue;
@@ -177,6 +178,8 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
     }
     else{
       printf("%s unknown command.\n", command);
+      ReadTillNewline();
+      free(command);
     }
   }while(1);
 
@@ -370,6 +373,7 @@ void PrintWc(char** Answers){
       printf("Worker%d failed to respond. Cant calculate wc.\n", i);
       return;
     }
+    free(Answers[i]);
   }
   printf("total number of lines:%d\ntotal number of bytes:%d\n",
                                         total_lines,total_bytes);

@@ -68,4 +68,6 @@ void WriteLogWc(FILE* fd, char* timestr, char* qtype, unsigned int lines,
   char* linesstr = malloc(sizeof(char)*(NumDigits(lines)+1));
   sprintf(linesstr, "%u", lines);
   fprintf(fd, "%s:%s:%s %s\n", timestr,qtype,linesstr,bytesstr);
+  free(bytesstr);
+  free(linesstr);
 }
