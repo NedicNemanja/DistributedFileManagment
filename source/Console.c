@@ -119,6 +119,7 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
       strcat(question," ");
       strcat(question,keyword);
       SendToAll(Children,OpenToPipes,question);
+      free(keyword);
       free(question);
       //wait for all workers to answer
       char* Answers[numWorkers];
@@ -143,6 +144,7 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
       strcat(question," ");
       strcat(question,keyword);
       SendToAll(Children,OpenToPipes,question);
+      free(keyword);
       free(question);
       //wait for all workers to answer
       char* Answers[numWorkers];
@@ -230,7 +232,6 @@ void GetAllAnswers(char* Answers[], int* OpenFromPipes){
       {
         if(PollPipes[i].revents == POLLIN){
           Answers[i] = Receive(OpenFromPipes[i]);
-          printf("%s\n", Answers[i]);
           numAnswers++;
         }
         else if(PollPipes[i].revents == POLLHUP){ //if pipe dead on other side
@@ -306,6 +307,7 @@ void PrintMaxCount(char** Answers){
           max_answer_pos = i;
         }
       }
+      free(path);
     }
   }
   if(max_answer_pos != -1)
@@ -342,6 +344,7 @@ void PrintMinCount(char** Answers){
           min_answer_pos = i;
         }
       }
+      free(path);
     }
   }
   if(min_answer_pos != -1)
