@@ -4,7 +4,7 @@ as an exercise on inter-process communication using signals and (named) pipes.
 The idea is to have a central process(jobExecutor) that interacts with the user and use its
 children processes (workers) to manage a set of directiores.
 i.e. The jobExecutor send out questions to all its workers and the workers answer based on the
-files they are managing (or they don't in which case i handle these failiures).
+files they are managing (or they don't in which case i handle these failures).
 
 Some core concepts and code is resued from the Search-Engine repo. The main difference is that
 there is now one Trie per worker and that since we (probably) have multiple files we need a
