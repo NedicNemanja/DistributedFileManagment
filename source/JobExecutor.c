@@ -36,10 +36,23 @@ int main(int argc, char* argv[]){
   }
 
   //This is the Parent**********************************
-  //dont let SIGCHLD of 1 worker interrupt poll() for others
-  signal(SIGCHLD,SIG_IGN);
+
+  /*do not receive notification when child processes  stop  (i.e.,  when  they
+  receive one of SIGSTOP,SIGTSTP, SIGTTIN, or SIGTTOU) or resume (i.e.SIGCONT)
+  +do not transform children into zombies*/
+  struct sigaction saction;
+  saction.sa_handler = SIG_IGN,
+  sigemptyset(&saction.sa_mask);
+  saction.sa_flags = SA_NOCLDSTOP | SA_NOCLDWAIT;
+  sigaction(SIGCHLD,&saction,NULL);
+
   //if a pipe dies ignore the signal and try to restore it later
-  signal(SIGPIPE,SIG_IGN);
+  struct sigaction saction1;
+  saction1.sa_handler = SIG_IGN,
+  sigemptyset(&saction1.sa_mask);
+  saction1.sa_flags = 0;
+  sigaction(SIGPIPE,&saction1,NULL);
+
   //open pipes from parent side
   int OpenToPipes[numWorkers];
   int OpenFromPipes[numWorkers];

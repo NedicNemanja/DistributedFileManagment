@@ -269,7 +269,6 @@ void InitalizeArray(char** Answers){
 }
 
 void alrm_handler(int signum){
-  printf("---DEADLINE---\n");
   DEADLINE = 1;
   //tell children deadline is up so they stop answering to the related command
   for(int i=0; i<numWorkers; i++){
@@ -279,10 +278,15 @@ void alrm_handler(int signum){
 
 void SetDeadlineAlarm(unsigned int deadline){
   DEADLINE = 0; //alrm_handler will set this to 1 when deadline expires
+
+  //set up a signal handler for SIGALRM
+  struct sigaction saction;
+  saction.sa_handler = &alrm_handler;
+  sigemptyset(&saction.sa_mask);
+  saction.sa_flags = 0;
   //set up 1 SIGALRM in deadline seconds
   alarm(deadline);
-  //set up a signal handler for SIGALRM
-  signal(SIGALRM,alrm_handler);
+  sigaction(SIGALRM,&saction,NULL);
 }
 
 void PrintSearch(char** Answers){
@@ -383,8 +387,8 @@ void PrintWc(char** Answers){
       total_bytes += bytes;
     }
     else{
-      printf("Worker%d failed to respond. Cant calculate wc.\n", i);
-      return;
+      printf("Worker%d failed to respond.", i);
+      printf("Only a partial answer will be printed.\n");
     }
     free(Answers[i]);
   }

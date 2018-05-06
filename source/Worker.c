@@ -52,7 +52,11 @@ int Worker(int wrk_num){
     if(!strcmp(instruction,"/search")){/***************************************/
       //set deadline, do not send answer after deadline is over
       DEADLINE=0;
-      signal(SIGUSR1,deadline_handler);
+      struct sigaction saction;
+      saction.sa_handler = &deadline_handler;
+      sigemptyset(&saction.sa_mask);
+      saction.sa_flags = 0;
+      sigaction(SIGUSR1,&saction,NULL);
       //get the posting lists for the querry
       Querry* querry = CreateQuerry(msg);
       int numResults=0;
