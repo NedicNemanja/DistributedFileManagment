@@ -81,13 +81,13 @@ Querry* CreateQuerryStdin(){
   }while(strcmp(word,"-d") && c !='\n');
   //exceptions
   if(c=='\n'){
-    free(querry);
+    FreeQuerry(querry);
     free(word);
     printf("Please specify deadline. Correct syntax: /search querry -d 1.123\n");
     return NULL;
   }
   if(querry->q == NULL){
-    free(querry);
+    FreeQuerry(querry);
     free(word);
     printf("No querry found. Correct syntax: /search querry -d deadline\n");
     return NULL;
@@ -98,7 +98,8 @@ Querry* CreateQuerryStdin(){
 
 void FreeQuerry(Querry* querry){
   for(unsigned int i=0; i<(querry->size); i++){
-    free(querry->q[i]);
+    if(querry->q[i] != NULL)
+      free(querry->q[i]);
   }
   free(querry->q);
   free(querry);

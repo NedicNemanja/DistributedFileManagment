@@ -198,6 +198,10 @@ PostingList** SearchTrieQuerry(Querry* querry, int* numResults){
       //insert
       Results[(*numResults)-1] = res;
     }
+    else{ //else remove word from querry
+      free(querry->q[i]);
+      querry->q[i] = NULL;
+    }
   }
 
   return Results;

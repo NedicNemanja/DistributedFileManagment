@@ -17,19 +17,14 @@ ERRORCODE CheckChildren(pid_t* Children, int* OpenToPipes, int* OpenFromPipes,
 answer. Return the Answers array*/
 void GetAllAnswers(char* Answers[], int* OpenFromPipes);
 
-
 //Used to init all parent pipes for use in poll for POLLIN
 void InitalizePipesPoll(struct pollfd* PollPipes, int* OpenFromPipes);
 //Used to init Answers array to NULL
 void InitalizeArray(char** Answers);
 
-
-//DEADLINE
 void alrm_handler(int signum);
 void SetDeadlineAlarm(unsigned int deadline);
 
-
-/*****************Print answers to stdin***************************/
 //Print and free answers for search
 void PrintSearch(char** Answers);
 //For /maxcount find the max Answer and print it, frees all answers

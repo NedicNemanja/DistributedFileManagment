@@ -61,10 +61,6 @@ Post* getPost(PostingList* pl, int index){
   return post;
 }
 
-char* PostingListWordGet(PostingList* pl){
-  return WordGet(pl->word);
-}
-
 
 /*This is called when a word that already exists in the Trie is found.
 If a post for this document already exists, then: recurrence+1
@@ -164,22 +160,51 @@ Post*** GroupAllByFile(PostingList** Results, int numResults, int numFiles,
   return PostsByFile;
 }
 
+//for Posts grouped by file remove posts that refer to the same document
+
+
 int MaxRecurrenceFile(PostingList* pl,char** FilePaths,int *max_num){
   int max = -1;
-  int max_file_id;
-  //check the recurrence for each file
+  int max_file_id=-1;
+  /*check the recurrence for each document
+  note: documents with the same file_id are consecutive
+  because they are inserted by file in the PostingList*/
+  int curr_file_id=-1;
+  int curr_file_recurrence = 0;  //recurrences for the current file
   for(int i=0; i<pl->doc_frequency; i++){
     Post* post = getPost(pl,i);
-    //keep track of max recurrence found
-    if((int)post->recurrence > max){
-      max_file_id = post->file_id;
-      max = post->recurrence;
+    //find out to which file does this document belong
+    if(post->file_id == curr_file_id){ //if same file as prev interation
+      curr_file_recurrence += post->recurrence;
     }
-    else if((int)post->recurrence == max){  //on equal choose aphabetically
-      if(mystrcmp(FilePaths[post->file_id],FilePaths[max_file_id]) == -1 ){
-        max_file_id = post->file_id;
-        max = post->recurrence;
+    else{ //if new file
+      //keep track of max file_recurrence found
+      if(i != 0){
+        if(curr_file_recurrence > max){
+          max_file_id = curr_file_id;
+          max = curr_file_recurrence;
+        }
+        else if(curr_file_recurrence == max){  //on equal choose aphabetically
+          if(mystrcmp(FilePaths[curr_file_id],FilePaths[max_file_id]) == -1 ){
+            max_file_id = curr_file_id;
+            max = curr_file_recurrence;
+          }
+        }
       }
+      //set new file_id
+      curr_file_id = post->file_id;
+      curr_file_recurrence = post->recurrence;
+    }
+  }
+  //check the last file found
+  if(curr_file_recurrence > max){
+    max_file_id = curr_file_id;
+    max = curr_file_recurrence;
+  }
+  else if(curr_file_recurrence == max){  //on equal choose aphabetically
+    if(mystrcmp(FilePaths[curr_file_id],FilePaths[max_file_id]) == -1 ){
+      max_file_id = curr_file_id;
+      max = curr_file_recurrence;
     }
   }
   *max_num = max;
@@ -189,19 +214,45 @@ int MaxRecurrenceFile(PostingList* pl,char** FilePaths,int *max_num){
 int MinRecurrenceFile(PostingList* pl,char** FilePaths, int* min_num){
   int min = INT_MAX;
   int min_file_id;
-  //check the recurrence for each file
+  /*check the recurrence for each document
+  note: documents with the same file_id are consecutive
+  because they are inserted by file in the PostingList*/
+  int curr_file_id = -1;
+  int curr_file_recurrence = INT_MAX;  //recurrences for the current file
   for(int i=0; i<pl->doc_frequency; i++){
     Post* post = getPost(pl,i);
-    //keep track of min recurrence found
-    if((int)post->recurrence < min){
-      min_file_id = post->file_id;
-      min = post->recurrence;
+    //find out to which file does this document belong
+    if(post->file_id == curr_file_id){ //if same file as prev interation
+      curr_file_recurrence += post->recurrence;
     }
-    else if((int)post->recurrence == min){  //on equal choose aphabetically
-      if(mystrcmp(FilePaths[post->file_id],FilePaths[min_file_id]) == -1 ){
-        min_file_id = post->file_id;
-        min = post->recurrence;
+    else{ //if new file
+      //keep track of min file_recurrence found
+      if(i != 0){
+        if(curr_file_recurrence < min){
+          min_file_id = curr_file_id;
+          min = curr_file_recurrence;
+        }
+        else if(curr_file_recurrence == min){  //on equal choose aphabetically
+          if(mystrcmp(FilePaths[curr_file_id],FilePaths[min_file_id]) == -1 ){
+            min_file_id = curr_file_id;
+            min = curr_file_recurrence;
+          }
+        }
       }
+      //set new file_id
+      curr_file_id = post->file_id;
+      curr_file_recurrence = post->recurrence;
+    }
+  }
+  //check the last file
+  if(curr_file_recurrence < min){
+    min_file_id = curr_file_id;
+    min = curr_file_recurrence;
+  }
+  else if(curr_file_recurrence == min){  //on equal choose aphabetically
+    if(mystrcmp(FilePaths[curr_file_id],FilePaths[min_file_id]) == -1 ){
+      min_file_id = curr_file_id;
+      min = curr_file_recurrence;
     }
   }
   *min_num = min;

@@ -53,7 +53,7 @@ void DeleteDocument(DocumentMAP* Dmap){
   //resize map
   Dmap->size--;
   Dmap->map = realloc(Dmap->map,sizeof(char*)*Dmap->size);
-  NULL_Check(Dmap->map);
+  //NULL_Check(Dmap->map);
 }
 
 

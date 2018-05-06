@@ -22,7 +22,6 @@ volatile sig_atomic_t DEADLINE; //deadline flag,triggered by SIGUSR1
 
 int Worker(int wrk_num){
   signal(SIGPIPE,SIG_DFL);
-  signal(SIGCHLD,SIG_DFL);
   //open/create log file
   FILE* log_fd = OpenLog();
   pid_t ppid = getppid();
@@ -35,13 +34,10 @@ int Worker(int wrk_num){
   //parse directories and get their files
   int numDirs,numFiles;
   char** Dirs = DivideDirs(dirmsg,&numDirs);
-  for(int i=0; i<numDirs; i++)
-    printf("%s\n", Dirs[i]);
   free(dirmsg);
   char** FilePaths = GetDirFiles(Dirs,numDirs,&numFiles);
-  for(int i=0; i<numFiles; i++)
-    printf("%s\n", FilePaths[i]);
   FreeDirs(Dirs,numDirs);
+
   //load files to memory and return their maps
   DocumentMAP** DocMaps = LoadFiles(FilePaths,numFiles);
   //ready to receive instructions from parent
@@ -52,7 +48,7 @@ int Worker(int wrk_num){
 
     char* instruction = NULL;
     instruction = getWordStr(msg);
-PrintAllPostingLists(&PLIST);
+
     if(!strcmp(instruction,"/search")){/***************************************/
       //set deadline, do not send answer after deadline is over
       DEADLINE=0;
@@ -61,14 +57,11 @@ PrintAllPostingLists(&PLIST);
       Querry* querry = CreateQuerry(msg);
       int numResults=0;
       PostingList** Results = SearchTrieQuerry(querry,&numResults);
-
       //if no results are found a empty string is sent to ppid
       if(numResults == 0){
         Send(ppid,from_pipe,"\0");
       }
       else{
-        //log
-        WriteLogSearch(log_fd,curr_time,instruction,Results,numResults,FilePaths);
         //Group All posts from Results by file in a 2d array of Post*
         int* PostsInFile;
         Post*** PostsByFile = GroupAllByFile(Results,numResults,numFiles,
@@ -76,6 +69,8 @@ PrintAllPostingLists(&PLIST);
         //answer for all files at once
         SendSearchAnswer( ppid,from_pipe, PostsByFile,PostsInFile,
                                           FilePaths,numFiles,DocMaps,log_fd);
+        //log
+        WriteLogSearch(log_fd,curr_time,instruction,querry,Results,FilePaths);
       }
       //reset SIGUSR1
       signal(SIGUSR1,SIG_DFL);
@@ -145,9 +140,10 @@ PrintAllPostingLists(&PLIST);
     }
     else if(!strcmp(instruction,"/wc")){/**************************************/
       unsigned int total_lines = GetNumLines(DocMaps,numFiles);
-      SendWcAnswer(ppid,from_pipe,total_lines,TOTAL_SIZE);
+      SendWcAnswer(ppid,from_pipe,total_lines,WORDS_IN_FILES,TOTAL_SIZE);
       //log
-      WriteLogWc(log_fd,curr_time,instruction,total_lines,TOTAL_SIZE);
+      WriteLogWc(log_fd,curr_time,instruction,total_lines,WORDS_IN_FILES,
+                                                              TOTAL_SIZE);
       //clean up
       free(instruction);
       free(msg);
@@ -177,7 +173,8 @@ void deadline_handler(int signum){
   DEADLINE = 1;
 }
 
-//send all answers at once and log the filepaths
+/*send all answers at once and log the filepaths,
+while ignoring the duplicate  documents*/
 void SendSearchAnswer(pid_t ppid, int from_pipe,
                         Post*** PostsByFile, int* PostsInFile,
                         char** FilePaths, int numFiles,
@@ -194,9 +191,17 @@ void SendSearchAnswer(pid_t ppid, int from_pipe,
         NULL_Check(filepath_str);
         sprintf(filepath_str, "%s:", FilePaths[i]);
 
-        //get an answer for each line
+        int prev_doc_id=-1;
+        //get an answer for each document(line) (ignore the duplicates)
         for(int j=0; j<PostsInFile[i]; j++){
           Post* post = PostsByFile[i][j];
+          /*documents are sorted by doc_id
+          => documents with the same doc_id (duplicates) will be consecutive
+          If you find consecutive docs witht he same doc_id ignore after the 1*/
+          if(post->doc_id == prev_doc_id)
+            continue;
+          else
+            prev_doc_id = post->doc_id;
           //get doc_id: linestring
           int doc_str_size = NumDigits(post->doc_id)+3+
                               strlen(DocMaps[i]->map[post->doc_id])+1;
@@ -246,12 +251,15 @@ void SendCountAnswer(pid_t ppid, int from_pipe, char* path, int num){
   free(answer);
 }
 
-void SendWcAnswer( pid_t ppid, int from_pipe, unsigned total_lines,
+void SendWcAnswer( pid_t ppid, int from_pipe, unsigned int total_lines,
+                                              unsigned int total_words,
                                               unsigned int total_bytes){
-  int answer_size = NumDigits(total_lines)+1+NumDigits(total_bytes)+1;
+  int answer_size = NumDigits(total_lines)+1+
+                    NumDigits(total_words)+1+
+                    NumDigits(total_bytes)+1;
   char* answer = malloc(sizeof(char)*answer_size);
   NULL_Check(answer);
-  sprintf(answer,"%d %d",total_lines,total_bytes);
+  sprintf(answer,"%d %d %d",total_lines,total_words,total_bytes);
   Send(ppid,from_pipe,answer);
   free(answer);
 }

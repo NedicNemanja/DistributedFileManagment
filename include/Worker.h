@@ -29,6 +29,7 @@ void SendCountAnswer(pid_t ppid, int from_pipe, char* path, int num);
 
 //send total_lines+total_bytes
 void SendWcAnswer( pid_t ppid, int from_pipe, unsigned total_lines,
+                                              unsigned int total_words,
                                               unsigned int total_bytes);
 
 #endif

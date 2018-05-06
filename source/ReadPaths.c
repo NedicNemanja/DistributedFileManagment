@@ -128,8 +128,7 @@ char** DivideDirs(char* msg,int* numDirs){
   //break up the string into tokens and store each token in Dirs
   char* token = getWordStr(msg);
   while(token != NULL){
-    printf("token:%s\n", token);
-    offset += strlen(token);
+    offset += strlen(token)+1;
     (*numDirs)++;
     Dirs = realloc(Dirs,sizeof(char*)*(*numDirs));
     NULL_Check(Dirs);

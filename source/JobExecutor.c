@@ -18,7 +18,6 @@ int main(int argc, char* argv[]){
   //start workers
   pid_t Children[numWorkers];
   for(int i=0; i<numWorkers; i++){
-
     //make a pipe jobexe->workeri
     if(MakePipePair(i) != 0){
       perror("pipe make");
@@ -48,7 +47,6 @@ int main(int argc, char* argv[]){
   //Read the directories paths
   int numPaths;
   char** Paths = ReadPaths(docfilename,&numPaths);
-  
   //Distribute the paths to the workers
   DistributePaths(Children,Paths,numPaths,OpenToPipes);
 
@@ -56,6 +54,7 @@ int main(int argc, char* argv[]){
   ERRORCODE err = Console(Children,OpenToPipes,OpenFromPipes,
                               Paths,numPaths);
 
+  FreePaths(Paths,numPaths);
   //if this is the parent
   if(ogparent == getpid()){
     //wait for all children to terminate
@@ -64,6 +63,5 @@ int main(int argc, char* argv[]){
 
     UnlinkExecutorPipes(OpenToPipes,OpenFromPipes);
   }
-  FreePaths(Paths,numPaths);
   return err;
 }

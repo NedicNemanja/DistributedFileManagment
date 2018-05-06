@@ -30,15 +30,3 @@ void PrintWord(Word word){
     printf("%c", getLetter(word,i));
   }
 }
-
-char* WordGet(Word* word){
-  if(word->size == 0)
-    return NULL;
-
-  char* str = malloc(sizeof(char)*(word->size+1));
-  for(int i=0; i<word->size; i++){
-    str[i] = word->wordptr[i];
-  }
-  str[word->size] = '\0';
-  return str;
-}

@@ -187,13 +187,11 @@ ERRORCODE Console(pid_t* Children,int* OpenToPipes,int* OpenFromPipes,
 
 ERRORCODE CheckChildren(pid_t* Children, int* OpenToPipes, int* OpenFromPipes,
                               char** Paths, int numPaths){
-//printf("CHecking children\n");
-int val;
+  int val;
   //check every child
   for(int i=0; i<numWorkers; i++){
     //if a child is dead revive it
     if((val = waitpid(Children[i],NULL,WNOHANG)) != 0){
-      //printf("Child%d died.Reset pipes.\n", val);
       //reset executor pipes
       UnlinkExecutorPipe(OpenToPipes,OpenFromPipes, i);
       if(MakePipePair(i) != 0){
@@ -208,16 +206,13 @@ int val;
         exit(FORK_FAIL);
       }
       if(Children[i] == 0){ //this is the child
-        printf("Child%d reporting %d.\n", i, getpid());
         return Worker(i);
       }
       //this is the parent
       OpenExecutorPipe(OpenToPipes,OpenFromPipes, i);
       DistributePath(Children,Paths,numPaths,OpenToPipes, i);
-      //printf("Child%d restored.\n", i);
     }
   }
-//printf("CHeck over%d.\n", val);
   return THIS_IS_PARENT;
 }
 
@@ -229,9 +224,7 @@ void GetAllAnswers(char* Answers[], int* OpenFromPipes){
     //block until at least one pipe is available for read
     struct pollfd PollPipes[numWorkers];
     InitalizePipesPoll(PollPipes,OpenFromPipes);
-    fprintf(stderr, "poll bloc\n");
     int val = poll(PollPipes,(nfds_t)numWorkers,-1);
-    fprintf(stderr,"poll unbloc\n");
 
     //check which pipes are available for read and read from them
     for(int i=0; i<numWorkers; i++){
@@ -376,12 +369,18 @@ void PrintMinCount(char** Answers){
 }
 
 void PrintWc(char** Answers){
-  int total_lines=0;
-  int total_bytes=0;
+  unsigned int total_lines=0;
+  unsigned int total_words=0;
+  unsigned int total_bytes=0;
   for(int i=0; i<numWorkers; i++){
     if(Answers[i] != NULL){
-      total_lines += (int)strtol(Answers[i],NULL,10);
-      total_bytes += (int)strtol(Answers[i]+NumDigits(total_lines)+1,NULL,10);
+      int lines = (int)strtol(Answers[i],NULL,10);
+      int words = (int)strtol(Answers[i]+NumDigits(lines)+1,NULL,10);
+      int bytes = (int)strtol(Answers[i]+NumDigits(lines)+1
+                                        +NumDigits(words)+1,NULL,10);
+      total_lines += lines;
+      total_words += words;
+      total_bytes += bytes;
     }
     else{
       printf("Worker%d failed to respond. Cant calculate wc.\n", i);
@@ -389,6 +388,7 @@ void PrintWc(char** Answers){
     }
     free(Answers[i]);
   }
-  printf("total number of lines:%d\ntotal number of bytes:%d\n",
-                                        total_lines,total_bytes);
+  printf("total number of lines:%d\n", total_lines);
+  printf("total number of words:%d\n", total_words);
+  printf("total number of bytes:%d\n", total_bytes);
 }

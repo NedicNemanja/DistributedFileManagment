@@ -2,12 +2,12 @@
 
 #Select only searches from ./log directory
 #cut the lines so they include only the keyword and the files after it
-#when you find delimeter : increment an array with keyword(first column) as the key (ensures uniq)
+#when you find delimeter : increment an array with keyword(first column) as the key
 #END = wait for #3 to finish, then porceed to #4
 #for every keyword list it and its recurrences
-#sort that listing by recurrences (ascending order)
+#sort that listing by recurrences (descending order)
 #print only the last (max) row
 
-result=$(grep '/search' ./log/* | cut -d ":" -f 6- | awk -F: '{array[$1]++}END{for (a in array) print a, array[a]}' | sort -k 2 | tail -n 1 )
+result=$(grep '/search' ./log/* | cut -d ":" -f 6- | awk -F: '{array[$1]++}END{for (a in array) print a, array[a]}' | sort -k 2 | tail -n 1)
 
-echo "Keyword Most Frequently Found: ${result}"
+echo "KeyWordMostFrequentlyFound: ${result}"

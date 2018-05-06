@@ -1,12 +1,13 @@
 #include "Log.h"
 #include "ErrorCodes.h"
 #include "StringManipulation.h"
-#include "PostingList.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
+#include "PostingList.h"
+#include "Post.h"
 
 FILE* OpenLog(){
   int pid = (int)getpid();
@@ -41,26 +42,23 @@ char* GetTime(){
   return str;
 }
 
-/*Write a partial log for a /search,
-filepaths are written by WriteLogSearchFilepath*/
-void WriteLogSearch(FILE* fd, char* timestr, char* qtype,
-                      PostingList** Results,int numResults, char** FilePaths){
-  for(int i=0; i<numResults; i++){
-    char* word = PostingListWordGet(Results[i]);
-    fprintf(fd, "%s:%s:%s:", timestr,qtype,word);
-    //write all the filepaths this word was found in
-    for(int j=0; j<Results[i]->doc_frequency; j++){
-      Post* post = getPost(Results[i],j);
-      fprintf(fd, "%s:", FilePaths[post->file_id]);
+/*Write a partial log for a /search*/
+void WriteLogSearch(FILE* fd, char* timestr, char* qtype, Querry* querry,
+                                      PostingList** Results, char** FilePaths){
+  int res_index=-1;
+  //for every word of querry that was found
+  for(int i=0; i<querry->size; i++){
+    if(querry->q[i] != NULL){
+      res_index++;
+      fprintf(fd, "%s:%s:%s:", timestr,qtype,querry->q[i]);
+      //add the results (filepaths)
+      for(int j=0; j<Results[res_index]->doc_frequency; j++){
+        Post* post = getPost(Results[res_index],j);
+        fprintf(fd, "%s:", FilePaths[post->file_id]);
+      }
+      fprintf(fd, "\n");
     }
-    free(word);
-    fprintf(fd, "\n");
   }
-
-}
-
-void WriteLogSearchFilepath(FILE* fd, char* filepath){
-  fprintf(fd, "%s\n", filepath);
 }
 
 void WriteLogMaxcount(FILE* fd, char* timestr, char* qtype, char* keyword,
@@ -74,12 +72,16 @@ void WriteLogMincount(FILE* fd, char* timestr, char* qtype, char* keyword,
 }
 
 void WriteLogWc(FILE* fd, char* timestr, char* qtype, unsigned int lines,
+                                                      unsigned int words,
                                             unsigned long long int bytes){
   char* bytesstr = malloc(sizeof(char)*(NumDigits(bytes)+1));
   sprintf(bytesstr, "%u", (unsigned int)bytes);
+  char* wordsstr = malloc(sizeof(char)*(NumDigits(words)+1));
+  sprintf(wordsstr, "%u", words);
   char* linesstr = malloc(sizeof(char)*(NumDigits(lines)+1));
   sprintf(linesstr, "%u", lines);
-  fprintf(fd, "%s:%s:%s %s\n", timestr,qtype,linesstr,bytesstr);
+  fprintf(fd, "%s:%s:%s %s %s\n", timestr,qtype,linesstr,wordsstr,bytesstr);
   free(bytesstr);
+  free(wordsstr);
   free(linesstr);
 }
