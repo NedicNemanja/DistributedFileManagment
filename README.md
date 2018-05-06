@@ -6,6 +6,14 @@ children processes (workers) to manage a set of directiores.
 i.e. The jobExecutor send out questions to all its workers and the workers answer based on the
 files they are managing (or they don't in which case i handle these failiures).
 
+Some core concepts and code is resued from the Search-Engine repo. The main difference is that
+there is now one Trie per worker and that since we (probably) have multiple files we need a
+DocumentMap for each file in order to load the files from disk to memory. Each line of a file
+(delimeter newline) is considered a document. Also Okapi BM25 score is irellevant here but can
+easily be added.
+
+For further clarifcations email me sdi1400124@di.uoa.gr
+
 # Compile and run
 A Makefile is provided. (-g is default).
 
