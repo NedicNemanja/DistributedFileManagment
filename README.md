@@ -12,8 +12,6 @@ DocumentMap for each file in order to load the files from disk to memory. Each l
 (delimeter newline) is considered a document. Also Okapi BM25 score is irellevant here but can
 easily be added.
 
-For further clarifcations email me sdi1400124@di.uoa.gr
-
 # Compile and run
 A Makefile is provided. (-g is default).
 
